@@ -29,7 +29,7 @@ function _y() {
 }
 
 function _w() {
-    let i = _a.value.toLowerCase();
+    let i = _a.value.toLowerCase().trim();
     if (i == _f && _g == _x1("c3RhZ2Uw")) {
         _s();
         _f = _x1("ZW5nbGlzaA==");
