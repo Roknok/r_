@@ -1,0 +1,102 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(to right, #f0f4f8, #d9e2ec);
+  }
+
+  html, body {
+    overflow: hidden;
+  }
+  
+  .input-container {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  
+  input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-size: 1rem;
+  }
+  
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    width: 60%;
+    max-width: 600px;
+  }
+  
+  .btn {
+    padding: 10px 15px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .btn1 { background-color: #e74c3c; }
+  .btn2 { background-color: #3498db; }
+  .btn3 { background-color: #2ecc71; }
+  .btn4 { background-color: #9b59b6; }
+  .btn5 { background-color: #f1c40f; }
+  .btn6 { background-color: #e67e22; }
+  .btn7 { background-color: #1abc9c; }
+  .btn8 { background-color: #34495e; }
+  .btn9 { background-color: #ff6b81; }
+  .btn10 { background-color: #7f8c8d; }
+  
+  .btn:hover {
+    opacity: 0.85;
+  }
+  
+
+  .raindrop {
+    position: fixed;
+    top: -2vh;
+    width: 5px;
+    height: 15px;
+    background: #00f;
+    opacity: 0.5;
+    border-radius: 50%;
+    animation: fall 2s linear forwards;
+    z-index: 9999;
+  }
+  
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+      opacity: 0;
+    }
+  }
+
+  .confetti {
+    position: fixed;
+    top: -10px;
+    width: 10px;
+    height: 10px;
+    opacity: 0.8;
+    border-radius: 2px;
+    animation: fallConfetti 3s linear forwards;
+    z-index: 9999;
+  }
+  
+  @keyframes fallConfetti {
+    to {
+      transform: translateY(110vh) rotate(720deg);
+      opacity: 0;
+    }
+  }

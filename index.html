@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title >hmm...</title>
-    <script defer src="script.js"></script>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>As You Like It</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id = "title" style="font-size: 3rem;">?????????</div>
-    <div id="flags">
-    <img src="Flag-Guatemala.webp" alt="">
-    <img src="images.png" alt="">
-    <img src="Flag_of_Malaysia.svg.webp" alt="">
-    <img src="Flag_of_Egypt.svg.png" alt="">
-</div>
-<label id="main" for="input">Enter password : </label>
-<div>
-<input id="lab" type="text">
-<button id="btn1" onclick="_w()">go</button>
-</div>
-</div>
-<label style="color: red;" id="pass"></label>
-<div>
+  <!-- Dynamic message div -->
+  <div id="message" style="margin-bottom: 1rem; font-size: 1.2rem; color: #333;">HI</div>
+
+  <div class="input-container">
+    <input type="text" id="inputBox" placeholder="Type something..." />
+  </div>
+  <div class="button-grid" id="grid">
+    <button class="btn btn2" onclick="changeBackground()">Change BG</button>
+    <button class="btn btn4" onclick="Increase()">+</button>
+    <button class="btn btn5" onclick="Decrease()">-</button>
+    <button class="btn btn7" onclick="redirectToYouTube()">Fun</button>
+    <button class="btn btn8" onclick="Copy()">Copy</button>
+    <button class="btn btn9" onclick="Flip()">Flip</button>
+    <button class="btn btn10" onclick="Rain()">Rain</button>
+    <button class="btn btn6" onclick="Confetti()">Confetti</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
