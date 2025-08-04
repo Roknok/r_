@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compass Hunt</title>
+  <style>
+    body {
+      background: #111;
+      color: #aaa;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    h1 {
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .directions {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+
+    .dir {
+      font-size: 1.5em;
+      opacity: 0.3;
+      transition: opacity 1s ease, text-shadow 1s ease;
+      text-shadow: none;
+    }
+
+    .dir.active {
+      opacity: 1;
+      text-shadow: 0 0 12px rgba(255, 255, 0, 0.8), 0 0 20px rgba(255, 255, 0, 0.5);
+    }
+
+    .compass {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      border: 5px solid #888;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #444;
+    }
+
+    .needle {
+      position: absolute;
+      width: 4px;
+      height: 100px;
+      background: red;
+      top: 0;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: rotate(0deg);
+    }
+
+    .compass-label {
+      position: absolute;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #ccc;
+    }
+
+    .label-N { top: 5px; left: 50%; transform: translateX(-50%); }
+    .label-E { top: 50%; right: 5px; transform: translateY(-50%); }
+    .label-S { bottom: 5px; left: 50%; transform: translateX(-50%); }
+    .label-W { top: 50%; left: 5px; transform: translateY(-50%); }
+
+  </style>
+</head>
+<body>
+  <h1>Point the Compass</h1>
+  <div class="directions">
+    <div id="N" class="dir">North</div>
+    <div id="E" class="dir">East</div>
+    <div id="W" class="dir">West</div>
+    <div id="S" class="dir">South</div>
+  </div>
+
+  <div class="compass">
+    <div class="needle" id="needle"></div>
+    <div class="compass-label label-N">N</div>
+    <div class="compass-label label-E">E</div>
+    <div class="compass-label label-S">S</div>
+    <div class="compass-label label-W">W</div>
+  </div>
+<div id="final-screen" style="display:none; text-align:center; opacity:0; transition: opacity 1s ease;">
+  <h2 style="color:white;font-size: 2em;">Proceed</h2>
+  <button onclick="location.href='next.html'"
+          style="padding:10px 20px; font-size:1.2em; background: #222; color: #ff0; border: 2px solid #ff0; border-radius: 8px; cursor:pointer; box-shadow: 0 0 10px rgba(255,255,0,0.5);">
+    Go
+  </button>
+</div>
+  <script src="compass.js"></script>
+  
+</body>
+</html>

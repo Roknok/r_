@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Element Combiner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    #elementsContainer, #combineZone, #finalSlot {
+      display: flex;
+      gap: 10px;
+      margin: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .box, .slot {
+      border: 2px dashed #555;
+      padding: 10px 20px;
+      background-color: #222;
+      cursor: grab;
+      user-select: none;
+    }
+    .slot {
+      min-width: 80px;
+      min-height: 40px;
+      text-align: center;
+      line-height: 40px;
+    }
+    #proceedContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+    }
+    #proceedContainer.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #proceedContainer h2 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      color: #ffffffb4;
+    }
+    #goButton {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      background: #222;
+      color: #ff0;
+      border: 2px solid #ff0;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255,255,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <h1>Element Combiner</h1>
+  <div id="elementsContainer"></div>
+  <div id="combineZone">
+    <div id="slot1" class="slot" ondrop="drop(event, 'slot1')" ondragover="allowDrop(event)"></div>
+    <div class="box">+</div>
+    <div id="slot2" class="slot" ondrop="drop(event, 'slot2')" ondragover="allowDrop(event)"></div>
+    <div class="box">=</div>
+    <div id="result" class="slot"></div>
+    <button id="addToInventoryBtn" onclick="addToInventory()" style="display:none;">Add to Inventory</button>
+  </div>
+  <button onclick="resetGame()">Reset</button>
+
+  <div id="finalSlot">
+    <span>Put Ronok here:</span>
+    <div id="ronokSlot" class="slot" ondrop="checkRonok(event)" ondragover="allowDrop(event)"></div>
+  </div>
+
+  <div id="proceedContainer">
+    <h2>PROCEED</h2>
+    <button id="goButton" onclick="location.href='next3.html'">GO</button>
+  </div>
+
+  <script>
+    const baseElements = ["Water", "Scissors", "Great", "Rocks", "Stars", "Fire", "Cloud", "Paper"];
+    const combinations = {
+      "Water+Scissors": "Rusted Scissors",
+      "Rocks+Scissors": "Broken Scissors",
+      "Great+Water": "Waterfall",
+      "Scissors+Great": "Raunak",
+      "Raunak+Rocks": "Roknok",
+      "Rusted Scissors+Fire": "Scissors",
+      "Water+Fire": "Steam",
+      "Cloud+Fire": "Lightning",
+      "Cloud+Water": "Rain",
+      "Rain+Stars": "Rainbow",
+      "Paper+Fire": "Ash",
+      "Water+Paper": "Wet Paper",
+      "Stars+Paper": "Constellation Map",
+      "Great+Rocks": "Mountains",
+      "Rocks+Fire": "Lava",
+      "Cloud+Stars": "Night Sky",
+      "Paper+Scissors": "Cut Paper",
+      "Cloud+Paper": "Paper Plane",
+      "Stars+Fire": "Nova",
+      "Rocks+Stars": "Meteorite",
+      "Scissors+Paper": "Victory",
+      "Raunak+Stars": "Rising Star",
+      "Water+Cloud": "Fog",
+      "Great+Fire": "Explosion",
+      "Great+Stars": "Supernova",
+      "Rocks+Cloud": "Cave",
+      "Scissors+Fire": "Hot Blades",
+      "Water+Stars": "Reflection",
+      "Paper+Great": "Scroll",
+      "Raunak+Paper": "Poem",
+      "Raunak+Fire": "Flameheart",
+      "Raunak+Great": "Legend",
+      "Roknok+Stars": "Celestial Being",
+      "Roknok+Fire": "Infernal Titan",
+      "Roknok+Great": "Overlord",
+      "Roknok+Scissors": "Blade King",
+      "Roknok+Water": "Tidewalker"
+    };
+
+    const slotValues = { slot1: null, slot2: null };
+
+    function allowDrop(event) {
+      event.preventDefault();
+    }
+
+    function drag(event) {
+      event.dataTransfer.setData("text/plain", event.target.textContent);
+    }
+
+    function drop(event, slot) {
+      event.preventDefault();
+      const data = event.dataTransfer.getData("text/plain");
+      document.getElementById(slot).textContent = data;
+      slotValues[slot] = data;
+      if (slotValues.slot1 && slotValues.slot2) {
+        const combo1 = `${slotValues.slot1}+${slotValues.slot2}`;
+        const combo2 = `${slotValues.slot2}+${slotValues.slot1}`;
+        const result = combinations[combo1] || combinations[combo2] || `${slotValues.slot1}${slotValues.slot2}`;
+        document.getElementById('result').textContent = result;
+        document.getElementById('addToInventoryBtn').style.display = 'inline';
+      }
+    }
+
+    function addToInventory() {
+      const result = document.getElementById('result').textContent;
+      if (result) {
+        const container = document.getElementById('elementsContainer');
+        if (!Array.from(container.children).some(box => box.textContent === result)) {
+          const newBox = createBox(result);
+          container.appendChild(newBox);
+        }
+        // Remove used items
+        for (let key in slotValues) {
+          if (slotValues[key]) {
+            const element = Array.from(container.children).find(box => box.textContent === slotValues[key]);
+            if (element) element.remove();
+          }
+        }
+        document.getElementById('addToInventoryBtn').style.display = 'none';
+        clearSlots();
+      }
+    }
+
+    function createBox(text) {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.draggable = true;
+      box.textContent = text;
+      box.ondragstart = drag;
+      return box;
+    }
+
+    function clearSlots() {
+      document.getElementById('slot1').textContent = '';
+      document.getElementById('slot2').textContent = '';
+      document.getElementById('result').textContent = '';
+      slotValues.slot1 = null;
+      slotValues.slot2 = null;
+    }
+
+    function resetGame() {
+      const container = document.getElementById('elementsContainer');
+      container.innerHTML = '';
+      baseElements.forEach(e => container.appendChild(createBox(e)));
+      clearSlots();
+      document.getElementById('ronokSlot').textContent = '';
+      document.getElementById('proceedContainer').classList.remove('show');
+    }
+
+    function checkRonok(event) {
+      event.preventDefault();
+      const data = event.dataTransfer.getData("text/plain");
+      document.getElementById('ronokSlot').textContent = data;
+      if (data === 'Roknok') {
+        document.getElementById('proceedContainer').classList.add('show');
+      }
+    }
+
+    // Initialize
+    resetGame();
+  </script>
+</body>
+</html>
