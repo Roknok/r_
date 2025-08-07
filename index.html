@@ -13,6 +13,7 @@
       text-align: center;
       padding: 20px;
       overflow-x: hidden;
+      transition: background 1s ease;
     }
 
     #game {
@@ -128,19 +129,20 @@
       <h2>Talking to you makes my day better</h2>
       <p>Okay, easy one. What’s your favorite color?</p>
       <button class="btn" onclick="wrong(3)">Pink</button>
-      <button class="btn" onclick="nextClue(3)">Blue</button>
-      <button class="btn" onclick="wrong(3)">Black</button>
-    </div>
-
-    <div class="clue" id="clue4">
-      <h2>My face does this 😊 when I think of you</h2>
-      <p>Wait, ofcourse you would know the answer to the previous question...<br> What’s My favorite color?</p>
-      <button class="btn" onclick="nextClue(4)">Yellow</button>
-      <button class="btn" onclick="wrong(3)">Blue</button>
+      <button class="btn" onclick="nextClue(3, '#b4cbff')">Blue</button> <!-- Darker blue -->
       <button class="btn" onclick="wrong(3)">Black</button>
     </div>
 
     <!-- Clue 4 -->
+    <div class="clue" id="clue4">
+      <h2>My face does this 😊 when I think of you</h2>
+      <p>Wait, ofcourse you would know the answer to the previous question...<br> What’s My favorite color?</p>
+      <button class="btn" onclick="nextClue(4, '#fff9b3')">Yellow</button> <!-- Yellow -->
+      <button class="btn" onclick="wrong(3)">Blue</button>
+      <button class="btn" onclick="wrong(3)">Black</button>
+    </div>
+
+    <!-- Clue 5 -->
     <div class="clue" id="clue5">
       <h2>The best day of my life (till now) is when you said you like me back...</h2>
       <p>What do i like the most among the following?</p>
@@ -149,7 +151,7 @@
       <button class="btn" onclick="wrong(5)">My scissors</button>
     </div>
 
-    <!-- Clue 5 -->
+    <!-- Clue 6 -->
     <div class="clue" id="clue6">
       <h2>Its kinda hard to believe that you really are my girlfriend now...</h2>
       <p>Which of these took the most effort?</p>
@@ -158,7 +160,7 @@
       <button class="btn" onclick="nextClue(6)">Getting courage to send this</button>
     </div>
 
-    <!-- Clue 6 -->
+    <!-- Clue 7 -->
     <div class="clue" id="clue7">
       <h2>I ran out of things to say... rather too embaressed to say those things...</h2>
       <p>Catch the floating heart 😊</p>
@@ -168,7 +170,7 @@
            style="top: 50%; left: 40%; position: absolute;" />
     </div>
 
-    <!-- Clue 7 -->
+    <!-- Clue 8 -->
     <div class="clue" id="clue8">
       <h2>Ohh yeah I really love listening to the things you play on the keyboard/piano</h2>
       <p>Pick the emoji that best describes this whole experience 😅</p>
@@ -198,24 +200,29 @@
       document.getElementById('clue1').classList.add('fade-in');
     }
 
-function nextClue(number) {
-  const current = document.getElementById(`clue${number}`);
-  const next = document.getElementById(`clue${number + 1}`);
-  
-  // Hide the current clue
-  current.classList.remove('fade-in');
-  current.style.display = 'none';
+    function nextClue(number, bgColor) {
+      const current = document.getElementById(`clue${number}`);
+      const next = document.getElementById(`clue${number + 1}`);
 
-  // Show the next clue with animation
-  if (next) {
-    next.style.display = 'block'; // Required to trigger transition
-    requestAnimationFrame(() => {
-      next.classList.add('fade-in');
-    });
-  } else {
-    document.getElementById('treasure').style.display = 'block';
-  }
-}
+      // Change background color if specified
+      if (bgColor) {
+        document.body.style.background = bgColor;
+      }
+
+      // Hide current clue
+      current.classList.remove('fade-in');
+      current.style.display = 'none';
+
+      // Show next clue
+      if (next) {
+        next.style.display = 'block';
+        requestAnimationFrame(() => {
+          next.classList.add('fade-in');
+        });
+      } else {
+        document.getElementById('treasure').style.display = 'block';
+      }
+    }
 
     function checkAnswer2() {
       const answer = document.getElementById('answer2').value.trim().toLowerCase();
