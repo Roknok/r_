@@ -22,6 +22,13 @@
     .clue {
       display: none;
       margin-top: 50px;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .fade-in {
+      display: block !important;
+      opacity: 1 !important;
     }
 
     .btn {
@@ -100,7 +107,7 @@
     <!-- Clue 1 -->
     <div class="clue" id="clue1">
       <h2>You always make me smile</h2>
-      <p>Something's quietly waiting for you on this page... try tapping around.</p>
+      <p>Something's quietly waiting for you... try tapping around.</p>
       <img src="heart.png"
            class="hidden-object"
            onclick="nextClue(1)"
@@ -180,7 +187,7 @@
       <p>Nothing crazy here. Just a page that says —</p>
       <p><strong>Maybe this website was simple… but it holds so much of what I feel for you.<br> And... thank you for liking me too. I can't promise to be perfect, but I can promise I'll always try my best.</strong></p>
       <p>I had fun making this for you. Hope it made you smile (even if just a tiny bit).</p>
-      <p style="margin-top: 40px; font-style: italic;">&mdash; Raunak</p>
+      <p style="margin-top: 40px; font-style: italic;">&mdash; Raunak<label style="font-size: 0.4em;"> the great</label></p>
     </div>
   </div>
 
@@ -188,15 +195,27 @@
     function startGame() {
       document.querySelector('button').style.display = 'none';
       document.getElementById('game').style.display = 'block';
-      document.getElementById('clue1').style.display = 'block';
+      document.getElementById('clue1').classList.add('fade-in');
     }
 
-    function nextClue(number) {
-      document.getElementById(`clue${number}`).style.display = 'none';
-      const next = document.getElementById(`clue${number + 1}`);
-      if (next) next.style.display = 'block';
-      else document.getElementById('treasure').style.display = 'block';
-    }
+function nextClue(number) {
+  const current = document.getElementById(`clue${number}`);
+  const next = document.getElementById(`clue${number + 1}`);
+  
+  // Hide the current clue
+  current.classList.remove('fade-in');
+  current.style.display = 'none';
+
+  // Show the next clue with animation
+  if (next) {
+    next.style.display = 'block'; // Required to trigger transition
+    requestAnimationFrame(() => {
+      next.classList.add('fade-in');
+    });
+  } else {
+    document.getElementById('treasure').style.display = 'block';
+  }
+}
 
     function checkAnswer2() {
       const answer = document.getElementById('answer2').value.trim().toLowerCase();
