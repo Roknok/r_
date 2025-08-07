@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>For Aatrei 🌼</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #ffc9f8;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    #game {
+      display: none;
+    }
+
+    .clue {
+      display: none;
+      margin-top: 50px;
+    }
+
+    .btn {
+      background-color: #4a90e2;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 17px;
+      margin: 10px 5px;
+    }
+
+    .btn:hover {
+      background-color: #357ABD;
+    }
+
+    .hidden-object {
+      width: 50px;
+      height: 50px;
+      position: absolute;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .floating-heart {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-30px); }
+      100% { transform: translateY(0); }
+    }
+
+    #treasure {
+      display: none;
+      margin-top: 60px;
+      font-size: 20px;
+      animation: fadeIn 1.5s ease-in;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    input {
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #aaa;
+    }
+
+    .emoji-options {
+      font-size: 30px;
+      margin-top: 20px;
+    }
+
+    .emoji-options span {
+      cursor: pointer;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Hey Aatrei 👋</h1>
+  <p>You're about to go on a little adventure.<br>That I made just for you.</p>
+  <button class="btn" onclick="startGame()">Start</button>
+
+  <div id="game">
+    <!-- Clue 1 -->
+    <div class="clue" id="clue1">
+      <h2>You always make me smile</h2>
+      <p>Something's quietly waiting for you on this page... try tapping around.</p>
+      <img src="heart.png"
+           class="hidden-object"
+           onclick="nextClue(1)"
+           style="top: 65%; left: 55%; position: absolute;" />
+    </div>
+
+    <!-- Clue 2 -->
+    <div class="clue" id="clue2">
+      <h2>Actually you have a lovely smile too</h2>
+      <p>Who made this whole silly thing?</p>
+      <input type="text" id="answer2" placeholder="Enter name..." />
+      <br><br>
+      <button class="btn" onclick="checkAnswer2()">Submit</button>
+    </div>
+
+    <!-- Clue 3 -->
+    <div class="clue" id="clue3">
+      <h2>Talking to you makes my day better</h2>
+      <p>Okay, easy one. What’s your favorite color?</p>
+      <button class="btn" onclick="wrong(3)">Pink</button>
+      <button class="btn" onclick="nextClue(3)">Blue</button>
+      <button class="btn" onclick="wrong(3)">Black</button>
+    </div>
+
+    <div class="clue" id="clue4">
+      <h2>My face does this 😊 when I think of you</h2>
+      <p>Wait, ofcourse you would know the answer to the previous question...<br> What’s My favorite color?</p>
+      <button class="btn" onclick="nextClue(4)">Yellow</button>
+      <button class="btn" onclick="wrong(3)">Blue</button>
+      <button class="btn" onclick="wrong(3)">Black</button>
+    </div>
+
+    <!-- Clue 4 -->
+    <div class="clue" id="clue5">
+      <h2>The best day of my life (till now) is when you said you like me back...</h2>
+      <p>What do i like the most among the follow?</p>
+      <button class="btn" onclick="nextClue(5)">Talking to you</button>
+      <button class="btn" onclick="wrong(5)">Cubing</button>
+      <button class="btn" onclick="wrong(5)">My scissors</button>
+    </div>
+
+    <!-- Clue 5 -->
+    <div class="clue" id="clue6">
+      <h2>Its kinda hard to believe that you really are my girlfriend now...</h2>
+      <p>Which of these took the most effort?</p>
+      <button class="btn" onclick="wrong()">Coding this page</button>
+      <button class="btn" onclick="wrong()">Writing “hii”</button>
+      <button class="btn" onclick="nextClue(6)">Getting courage to send this</button>
+    </div>
+
+    <!-- Clue 6 -->
+    <div class="clue" id="clue7">
+      <h2>I ran out of things to say... rather too embaressed to say those things...</h2>
+      <p>Catch the floating heart 😊</p>
+      <img src="heart.png"
+           class="hidden-object floating-heart"
+           onclick="nextClue(7)"
+           style="top: 50%; left: 40%; position: absolute;" />
+    </div>
+
+    <!-- Clue 7 -->
+    <div class="clue" id="clue8">
+      <h2>Ohh yeah I really love listening to the things you play on the keyboard/piano</h2>
+      <p>Pick the emoji that best describes this whole experience 😅</p>
+      <div class="emoji-options">
+        <span onclick="wrong()">🤨</span>
+        <span onclick="wrong()">😑</span>
+        <span onclick="wrong()">😴</span>
+        <span onclick="nextClue(8)">😄</span>
+        <span onclick="wrong()">🙄</span>
+      </div>
+    </div>
+
+    <!-- Final Message -->
+    <div id="treasure">
+      <h2>You made it 🎉</h2>
+      <p>Nothing crazy here. Just a page that says —</p>
+      <p><strong>Maybe this website was simple… but it holds so much of what I feel for you.<br> And... thank you for liking me too. I can't promise to be perfect, but I can promise I'll always try my best.</strong></p>
+      <p>I had fun making this for you. Hope it made you smile (even if just a tiny bit).</p>
+      <p style="margin-top: 40px; font-style: italic;">&mdash; Raunak</p>
+    </div>
+  </div>
+
+  <script>
+    function startGame() {
+      document.querySelector('button').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      document.getElementById('clue1').style.display = 'block';
+    }
+
+    function nextClue(number) {
+      document.getElementById(`clue${number}`).style.display = 'none';
+      const next = document.getElementById(`clue${number + 1}`);
+      if (next) next.style.display = 'block';
+      else document.getElementById('treasure').style.display = 'block';
+    }
+
+    function checkAnswer2() {
+      const answer = document.getElementById('answer2').value.trim().toLowerCase();
+      if (answer.includes('raunak')) {
+        nextClue(2);
+      } else {
+        alert("Try again — it's not that hard 😅");
+      }
+    }
+
+    function wrong() {
+      alert("Tempting choice. But not quite 😄");
+    }
+  </script>
+
+</body>
+</html>
