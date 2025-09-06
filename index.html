@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guess the Image Game</title>
+  <title>Guess the Image</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(to bottom right, #e6f0ff, #f9f9f9);
       margin: 0;
-      padding: 0;
       height: 100vh;
       width: 100vw;
       display: flex;
@@ -18,61 +17,59 @@
     }
     #game {
       background: #fff;
-      padding: 20px;
-      border-radius: 0; /* Fullscreen look */
-      box-shadow: none;
       width: 100%;
       height: 100%;
-      max-width: 100%;
-      max-height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      box-sizing: border-box;
       position: relative;
+      padding: 15px;
+      box-sizing: border-box;
     }
     h1 {
       margin: 10px 0;
+      font-size: clamp(20px, 6vw, 32px);
       color: #333;
-      font-size: 6vw;
+      text-align: center;
     }
     #round-text {
-      margin: 5px 0;
-      font-size: 4vw;
+      font-size: clamp(14px, 4vw, 20px);
       color: #666;
+      margin-bottom: 10px;
     }
     canvas {
       border: 3px solid #ddd;
       border-radius: 10px;
-      margin: 20px 0;
+      margin: 15px 0;
       background: #fafafa;
       width: 80vw;
-      height: 80vw; /* Always square */
+      height: 80vw; /* keep square on phones */
       max-width: 400px;
       max-height: 400px;
     }
     input {
-      padding: 12px;
-      font-size: 4vw;
+      padding: 10px;
+      font-size: clamp(14px, 4vw, 18px);
       border: 2px solid #ccc;
       border-radius: 6px;
       width: 80%;
-      margin-bottom: 10px;
       max-width: 350px;
+      margin-bottom: 10px;
+      text-align: center;
     }
     button {
-      padding: 12px 18px;
-      font-size: 4vw;
+      padding: 10px 16px;
+      font-size: clamp(14px, 4vw, 18px);
       border: none;
       border-radius: 8px;
-      margin: 8px;
+      margin: 5px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: transform 0.15s;
       min-width: 100px;
     }
-    button:hover {
-      opacity: 0.9;
+    button:active {
+      transform: scale(0.95);
     }
     .submit-btn {
       background: #4caf50;
@@ -89,11 +86,19 @@
       top: 10px;
       right: 10px;
       font-weight: bold;
-      padding: 8px 12px;
+      width: 45px;
+      height: 45px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
     }
     #message {
       margin-top: 12px;
-      font-size: 4vw;
+      font-size: clamp(14px, 4vw, 18px);
       font-weight: bold;
       text-align: center;
     }
@@ -102,26 +107,23 @@
       color: #444;
     }
     #points-info {
-      margin: 15px 0;
-      font-size: 3.5vw;
-      line-height: 1.6;
+      margin: 12px 0;
+      font-size: clamp(12px, 3.5vw, 16px);
+      line-height: 1.5;
       color: #444;
-      text-align: left;
+      text-align: center;
       background: #f5f5f5;
-      padding: 10px;
+      padding: 8px;
       border-radius: 8px;
-      max-width: 90%;
+      width: 90%;
+      max-width: 350px;
     }
-    #points-info strong {
-      color: #000;
-    }
+    #points-info strong { color: #000; }
+
     /* Rules Popup */
     #rules-popup {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: rgba(0,0,0,0.6);
       display: flex;
       justify-content: center;
@@ -137,43 +139,27 @@
     }
     #rules-box {
       background: #fff;
-      padding: 25px;
+      padding: 20px;
       border-radius: 12px;
       max-width: 90%;
       text-align: left;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      font-size: 4vw;
+      font-size: clamp(14px, 4vw, 18px);
     }
     #rules-box h2 {
       margin-top: 0;
+      font-size: clamp(16px, 5vw, 22px);
       color: #333;
-      font-size: 5vw;
-    }
-    #rules-box p {
-      margin: 10px 0;
-      color: #444;
     }
     .close-btn {
       background: #f44336;
       color: white;
-      padding: 10px 14px;
+      padding: 8px 14px;
       border-radius: 6px;
       cursor: pointer;
-      margin-top: 15px;
-      font-size: 4vw;
-    }
-
-    /* Desktop scaling */
-    @media (min-width: 768px) {
-      h1 { font-size: 28px; }
-      #round-text { font-size: 18px; }
-      input { font-size: 16px; }
-      button { font-size: 16px; }
-      #message { font-size: 18px; }
-      #points-info { font-size: 14px; }
-      #rules-box { font-size: 16px; }
-      #rules-box h2 { font-size: 20px; }
-      .close-btn { font-size: 16px; }
+      margin-top: 12px;
+      font-size: clamp(14px, 4vw, 18px);
+      border: none;
     }
   </style>
 </head>
@@ -183,9 +169,8 @@
     <h1>Guess the Image</h1>
     <p id="round-text">Round <span id="round">1</span> / <span id="total">5</span></p>
     <canvas id="canvas" width="256" height="256"></canvas>
+    <input type="text" id="guess" placeholder="Your guess here">
     <div>
-      <input type="text" id="guess" placeholder="Your guess here">
-      <br>
       <button class="submit-btn" onclick="submitGuess()">Submit</button>
       <button class="higher-btn" onclick="higherRes()">Higher Res</button>
     </div>
@@ -198,11 +183,9 @@
   <div id="rules-popup">
     <div id="rules-box">
       <h2>📜 How to Play</h2>
-      <p>1. An image starts pixelated at very low resolution.</p>
-      <p>2. Type your guess and submit.</p>
-      <p>3. If wrong, increase resolution for fewer points.</p>
-      <p>4. The fewer reveals you use, the more points you earn!</p>
-      <p>5. If you reach max resolution, the answer is revealed.</p>
+      <p>• Image starts pixelated. Guess it!</p>
+      <p>• Wrong? Use higher resolution (fewer points).</p>
+      <p>• Earlier you guess, more points you get!</p>
       <button class="close-btn" onclick="toggleRules()">Close</button>
     </div>
   </div>
@@ -229,7 +212,6 @@
     const pointsInfo = document.getElementById("points-info");
 
     document.getElementById("total").textContent = totalImages;
-
     img.onload = () => drawImage();
 
     function drawImage() {
@@ -273,16 +255,16 @@
       if (guess === answers[currentImage].toLowerCase()) {
         const size = resolutions[currentResIndex];
         score += points[size];
-        document.getElementById("message").textContent = `✅ Correct! You got ${points[size]} points.`;
+        document.getElementById("message").textContent = `✅ Correct! +${points[size]} points.`;
         document.getElementById("score").textContent = score;
         nextImage();
       } else {
         if (currentResIndex < resolutions.length - 1) {
           currentResIndex++;
           drawImage();
-          document.getElementById("message").textContent = "❌ Wrong! Here's a higher resolution...";
+          document.getElementById("message").textContent = "❌ Wrong! Higher resolution...";
         } else {
-          document.getElementById("message").textContent = `❌ Wrong! The correct answer was: ${answers[currentImage]}. You get 0 points.`;
+          document.getElementById("message").textContent = `❌ Wrong! Answer: ${answers[currentImage]}.`;
           nextImage();
         }
       }
@@ -294,7 +276,7 @@
         drawImage();
         document.getElementById("message").textContent = "";
       } else {
-        document.getElementById("message").textContent = `No more resolutions! The correct answer was: ${answers[currentImage]}. You get 0 points.`;
+        document.getElementById("message").textContent = `No more resolutions! Answer: ${answers[currentImage]}.`;
         nextImage();
       }
     }
@@ -307,7 +289,7 @@
         setTimeout(() => {
           document.getElementById("message").textContent = "";
           updateImage();
-        }, 2000);
+        }, 1500);
       } else {
         document.getElementById("game").innerHTML = `<h2>🎉 Game Over! Final Score: ${score}</h2>`;
       }
