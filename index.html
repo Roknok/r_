@@ -1,242 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>For Aatrei 🌼</title>
+  <meta charset="UTF-8">
+  <title>Guess the Image Game</title>
   <style>
     body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #ffc9f8;
-      color: #333;
-      text-align: center;
-      padding: 20px;
-      overflow-x: hidden;
-      transition: background 1s ease;
     }
-
     #game {
-      display: none;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
     }
-
-    .clue {
-      display: none;
-      margin-top: 50px;
-      opacity: 0;
-      transition: opacity 0.6s ease;
+    h1 {
+      margin-bottom: 10px;
+      color: #333;
     }
-
-    .fade-in {
-      display: block !important;
-      opacity: 1 !important;
-    }
-
-    .btn {
-      background-color: #4a90e2;
-      color: white;
-      padding: 12px 20px;
-      border: none;
+    canvas {
+      border: 3px solid #ddd;
       border-radius: 8px;
-      cursor: pointer;
-      font-size: 17px;
-      margin: 10px 5px;
+      margin: 20px 0;
+      background: #fafafa;
     }
-
-    .btn:hover {
-      background-color: #357ABD;
-    }
-
-    .hidden-object {
-      width: 50px;
-      height: 50px;
-      position: absolute;
-      cursor: pointer;
-      opacity: 0.8;
-    }
-
-    .floating-heart {
-      animation: float 4s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-30px); }
-      100% { transform: translateY(0); }
-    }
-
-    #treasure {
-      display: none;
-      margin-top: 60px;
-      font-size: 20px;
-      animation: fadeIn 1.5s ease-in;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.98); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
     input {
-      padding: 8px;
+      padding: 10px;
       font-size: 16px;
+      border: 2px solid #ccc;
       border-radius: 6px;
-      border: 1px solid #aaa;
+      width: 70%;
+      margin-bottom: 10px;
     }
-
-    .emoji-options {
-      font-size: 30px;
-      margin-top: 20px;
-    }
-
-    .emoji-options span {
+    button {
+      padding: 10px 15px;
+      font-size: 15px;
+      border: none;
+      border-radius: 6px;
+      margin: 5px;
       cursor: pointer;
-      margin: 10px;
+      transition: 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .submit-btn {
+      background: #4caf50;
+      color: white;
+    }
+    .higher-btn {
+      background: #2196f3;
+      color: white;
+    }
+    #message {
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #score {
+      font-weight: bold;
+      color: #444;
     }
   </style>
 </head>
 <body>
-
-  <h1>Hey Aatrei 👋</h1>
-  <p>You're about to go on a little adventure.<br>That I made just for you.</p>
-  <button class="btn" onclick="startGame()">Start</button>
-
   <div id="game">
-    <!-- Clue 1 -->
-    <div class="clue" id="clue1">
-      <h2>You always make me smile</h2>
-      <p>Something's quietly waiting for you... try tapping around.</p>
-      <img src="heart.png"
-           class="hidden-object"
-           onclick="nextClue(1)"
-           style="top: 65%; left: 55%; position: absolute;" />
+    <h1>Guess the Image</h1>
+    <p>Round <span id="round">1</span> / <span id="total">5</span></p>
+    <canvas id="canvas" width="256" height="256"></canvas>
+    <div>
+      <input type="text" id="guess" placeholder="Your guess here">
+      <br>
+      <button class="submit-btn" onclick="submitGuess()">Submit</button>
+      <button class="higher-btn" onclick="higherRes()">Higher Res</button>
     </div>
-
-    <!-- Clue 2 -->
-    <div class="clue" id="clue2">
-      <h2>Actually you have a lovely smile too</h2>
-      <p>Who made this whole silly thing?</p>
-      <input type="text" id="answer2" placeholder="Enter name..." />
-      <br><br>
-      <button class="btn" onclick="checkAnswer2()">Submit</button>
-    </div>
-
-    <!-- Clue 3 -->
-    <div class="clue" id="clue3">
-      <h2>Talking to you makes my day better</h2>
-      <p>Okay, easy one. What’s your favorite color?</p>
-      <button class="btn" onclick="wrong(3)">Pink</button>
-      <button class="btn" onclick="nextClue(3, '#b4cbff')">Blue</button> <!-- Darker blue -->
-      <button class="btn" onclick="wrong(3)">Black</button>
-    </div>
-
-    <!-- Clue 4 -->
-    <div class="clue" id="clue4">
-      <h2>My face does this 😊 when I think of you</h2>
-      <p>Wait, ofcourse you would know the answer to the previous question...<br> What’s My favorite color?</p>
-      <button class="btn" onclick="nextClue(4, '#fff9b3')">Yellow</button> <!-- Yellow -->
-      <button class="btn" onclick="wrong(3)">Blue</button>
-      <button class="btn" onclick="wrong(3)">Black</button>
-    </div>
-
-    <!-- Clue 5 -->
-    <div class="clue" id="clue5">
-      <h2>The best day of my life (till now) is when you said you like me back...</h2>
-      <p>What do i like the most among the following?</p>
-      <button class="btn" onclick="nextClue(5)">Talking to you</button>
-      <button class="btn" onclick="wrong(5)">Cubing</button>
-      <button class="btn" onclick="wrong(5)">My scissors</button>
-    </div>
-
-    <!-- Clue 6 -->
-    <div class="clue" id="clue6">
-      <h2>Its kinda hard to believe that you really are my girlfriend now...</h2>
-      <p>Which of these took the most effort?</p>
-      <button class="btn" onclick="wrong()">Coding this page</button>
-      <button class="btn" onclick="wrong()">Writing “hii”</button>
-      <button class="btn" onclick="nextClue(6)">Getting courage to send this</button>
-    </div>
-
-    <!-- Clue 7 -->
-    <div class="clue" id="clue7">
-      <h2>I ran out of things to say... rather too embaressed to say those things...</h2>
-      <p>Catch the floating heart 😊</p>
-      <img src="heart.png"
-           class="hidden-object floating-heart"
-           onclick="nextClue(7)"
-           style="top: 50%; left: 40%; position: absolute;" />
-    </div>
-
-    <!-- Clue 8 -->
-    <div class="clue" id="clue8">
-      <h2>Ohh yeah I really love listening to the things you play on the keyboard/piano</h2>
-      <p>Pick the emoji that best describes this whole experience 😅</p>
-      <div class="emoji-options">
-        <span onclick="wrong()">🤨</span>
-        <span onclick="wrong()">😑</span>
-        <span onclick="wrong()">😴</span>
-        <span onclick="nextClue(8)">😄</span>
-        <span onclick="wrong()">🙄</span>
-      </div>
-    </div>
-
-    <!-- Final Message -->
-    <div id="treasure">
-      <h2>You made it 🎉</h2>
-      <p>Nothing crazy here. Just a page that says —</p>
-      <p><strong>Maybe this website was simple… but it holds so much of what I feel for you.<br> And... thank you for liking me too. I can't promise to be perfect, but I can promise I'll always try my best.</strong></p>
-      <p>I had fun making this for you. Hope it made you smile (even if just a tiny bit).</p>
-      <p style="margin-top: 40px; font-style: italic;">&mdash; Raunak<label style="font-size: 0.4em;"> the great</label></p>
-    </div>
+    <p id="message"></p>
+    <p>Score: <span id="score">0</span></p>
   </div>
 
   <script>
-    function startGame() {
-      document.querySelector('button').style.display = 'none';
-      document.getElementById('game').style.display = 'block';
-      document.getElementById('clue1').classList.add('fade-in');
-    }
+    const resolutions = [4, 8, 16, 32, 64];
+    const points = {4: 10, 8: 8, 16: 5, 32: 2, 64: 1};
 
-    function nextClue(number, bgColor) {
-      const current = document.getElementById(`clue${number}`);
-      const next = document.getElementById(`clue${number + 1}`);
+    let currentImage = 1;
+    let currentResIndex = 0;
+    let score = 0;
+    const totalImages = 5;
+    const answers = {
+      1: "apple",
+      2: "sayan",
+      3: "saturn",
+      4: "raunak",
+      5: "cat"
+    };
 
-      // Change background color if specified
-      if (bgColor) {
-        document.body.style.background = bgColor;
-      }
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
 
-      // Hide current clue
-      current.classList.remove('fade-in');
-      current.style.display = 'none';
+    document.getElementById("total").textContent = totalImages;
+    img.onload = () => drawImage();
 
-      // Show next clue
-      if (next) {
-        next.style.display = 'block';
-        requestAnimationFrame(() => {
-          next.classList.add('fade-in');
-        });
+    function drawImage() {
+      const size = resolutions[currentResIndex];
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // maintain aspect ratio
+      const aspect = img.width / img.height;
+      let drawW, drawH;
+      if (aspect > 1) {
+        drawW = canvas.width;
+        drawH = canvas.width / aspect;
       } else {
-        document.getElementById('treasure').style.display = 'block';
+        drawH = canvas.height;
+        drawW = canvas.height * aspect;
       }
+
+      // pixelated downscale + upscale
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      const tctx = tempCanvas.getContext("2d");
+      tctx.imageSmoothingEnabled = false;
+      tctx.drawImage(img, 0, 0, size, size);
+
+      ctx.drawImage(tempCanvas, 0, 0, size, size,
+        (canvas.width - drawW) / 2, (canvas.height - drawH) / 2,
+        drawW, drawH);
     }
 
-    function checkAnswer2() {
-      const answer = document.getElementById('answer2').value.trim().toLowerCase();
-      if (answer.includes('raunak')) {
-        nextClue(2);
+    function updateImage() {
+      img.src = `${currentImage}.png`;
+      document.getElementById("round").textContent = currentImage;
+    }
+
+    function submitGuess() {
+      const guess = document.getElementById("guess").value.trim().toLowerCase();
+      if (!guess) return;
+
+      if (guess === answers[currentImage].toLowerCase()) {
+        const size = resolutions[currentResIndex];
+        score += points[size];
+        document.getElementById("message").textContent = `✅ Correct! You got ${points[size]} points.`;
+        document.getElementById("score").textContent = score;
+        nextImage();
       } else {
-        alert("Try again — it's not that hard 😅");
+        // if not last resolution, go higher res
+        if (currentResIndex < resolutions.length - 1) {
+          currentResIndex++;
+          drawImage();
+          document.getElementById("message").textContent = "❌ Wrong! Here's a higher resolution...";
+        } else {
+          // no more resolutions → reveal answer & go next
+          document.getElementById("message").textContent = `❌ Wrong! The correct answer was: ${answers[currentImage]}. You get 0 points.`;
+          nextImage();
+        }
       }
     }
 
-    function wrong() {
-      alert("Tempting choice. But not quite 😄");
+    function higherRes() {
+      if (currentResIndex < resolutions.length - 1) {
+        currentResIndex++;
+        drawImage();
+        document.getElementById("message").textContent = "";
+      } else {
+        document.getElementById("message").textContent = `No more resolutions! The correct answer was: ${answers[currentImage]}. You get 0 points.`;
+        nextImage();
+      }
     }
+
+    function nextImage() {
+      currentImage++;
+      currentResIndex = 0;
+      document.getElementById("guess").value = "";
+      if (currentImage <= totalImages) {
+        setTimeout(() => {
+          document.getElementById("message").textContent = "";
+          updateImage();
+        }, 2000);
+      } else {
+        document.getElementById("game").innerHTML = `<h2>🎉 Game Over! Final Score: ${score}</h2>`;
+      }
+    }
+
+    updateImage();
   </script>
-
 </body>
 </html>
