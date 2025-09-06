@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f4f8;
+      background: linear-gradient(to bottom right, #e6f0ff, #f9f9f9);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,19 +16,25 @@
     #game {
       background: #fff;
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
       text-align: center;
-      max-width: 450px;
+      max-width: 520px;
       width: 90%;
+      position: relative;
     }
     h1 {
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       color: #333;
+    }
+    #round-text {
+      margin: 8px 0;
+      font-size: 16px;
+      color: #666;
     }
     canvas {
       border: 3px solid #ddd;
-      border-radius: 8px;
+      border-radius: 10px;
       margin: 20px 0;
       background: #fafafa;
     }
@@ -60,6 +66,15 @@
       background: #2196f3;
       color: white;
     }
+    .help-btn {
+      background: #ff9800;
+      color: white;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-weight: bold;
+      padding: 8px 12px;
+    }
     #message {
       margin-top: 15px;
       font-size: 16px;
@@ -69,12 +84,70 @@
       font-weight: bold;
       color: #444;
     }
+    #points-info {
+      margin: 15px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #444;
+      text-align: left;
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    #points-info strong {
+      color: #000;
+    }
+    /* Rules Popup */
+    #rules-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #rules-popup.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    #rules-box {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 400px;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #rules-box h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    #rules-box p {
+      margin: 10px 0;
+      font-size: 15px;
+      color: #444;
+    }
+    .close-btn {
+      background: #f44336;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
   <div id="game">
+    <button class="help-btn" onclick="toggleRules()">?</button>
     <h1>Guess the Image</h1>
-    <p>Round <span id="round">1</span> / <span id="total">5</span></p>
+    <p id="round-text">Round <span id="round">1</span> / <span id="total">5</span></p>
     <canvas id="canvas" width="256" height="256"></canvas>
     <div>
       <input type="text" id="guess" placeholder="Your guess here">
@@ -82,8 +155,22 @@
       <button class="submit-btn" onclick="submitGuess()">Submit</button>
       <button class="higher-btn" onclick="higherRes()">Higher Res</button>
     </div>
+    <div id="points-info"></div>
     <p id="message"></p>
     <p>Score: <span id="score">0</span></p>
+  </div>
+
+  <!-- Rules Popup -->
+  <div id="rules-popup">
+    <div id="rules-box">
+      <h2>📜 How to Play</h2>
+      <p>1. An image will appear in very low resolution (pixelated).</p>
+      <p>2. Try to guess the object/person/place by typing your answer.</p>
+      <p>3. If wrong, you can reveal a higher resolution.</p>
+      <p>4. The fewer times you increase resolution, the more points you earn!</p>
+      <p>5. If you still can’t guess at the highest resolution, the answer is revealed.</p>
+      <button class="close-btn" onclick="toggleRules()">Close</button>
+    </div>
   </div>
 
   <script>
@@ -105,8 +192,10 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
+    const pointsInfo = document.getElementById("points-info");
 
     document.getElementById("total").textContent = totalImages;
+
     img.onload = () => drawImage();
 
     function drawImage() {
@@ -136,6 +225,8 @@
       ctx.drawImage(tempCanvas, 0, 0, size, size,
         (canvas.width - drawW) / 2, (canvas.height - drawH) / 2,
         drawW, drawH);
+
+      updatePointsInfo();
     }
 
     function updateImage() {
@@ -154,13 +245,11 @@
         document.getElementById("score").textContent = score;
         nextImage();
       } else {
-        // if not last resolution, go higher res
         if (currentResIndex < resolutions.length - 1) {
           currentResIndex++;
           drawImage();
           document.getElementById("message").textContent = "❌ Wrong! Here's a higher resolution...";
         } else {
-          // no more resolutions → reveal answer & go next
           document.getElementById("message").textContent = `❌ Wrong! The correct answer was: ${answers[currentImage]}. You get 0 points.`;
           nextImage();
         }
@@ -192,7 +281,27 @@
       }
     }
 
-    updateImage();
+    function updatePointsInfo() {
+      let html = "<strong>Points by Resolution:</strong><br>";
+      for (let res of resolutions) {
+        if (res === resolutions[currentResIndex]) {
+          html += `<strong>🔹 ${res}x${res}: ${points[res]} (current)</strong><br>`;
+        } else {
+          html += `${res}x${res}: ${points[res]}<br>`;
+        }
+      }
+      pointsInfo.innerHTML = html;
+    }
+
+    function toggleRules() {
+      document.getElementById("rules-popup").classList.toggle("active");
+    }
+
+    // Show rules at the beginning
+    window.onload = () => {
+      toggleRules();
+      updateImage();
+    };
   </script>
 </body>
 </html>
