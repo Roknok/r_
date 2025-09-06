@@ -275,12 +275,18 @@
       }
     }
 
-    function showRules() {
-      document.getElementById("rulesModal").style.display = "flex";
-    }
-    function hideRules() {
-      document.getElementById("rulesModal").style.display = "none";
-    }
+function showRules() {
+  document.getElementById("rulesModal").style.display = "flex";
+}
+function hideRules() {
+  document.getElementById("rulesModal").style.display = "none";
+}
+
+// Show rules automatically when page loads
+window.onload = () => {
+  updateImage();
+  showRules();
+};
   </script>
 </body>
 </html>
