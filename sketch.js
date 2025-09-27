@@ -4,11 +4,14 @@ let infoOpen = false;
 let showTitle = true;
 let titleAlpha = 255;
 
+// scaling factor
+let scaleFactor = 1.5;
+
 function setup() {
-  pixelDensity(1)
+  pixelDensity(0.9)
   createCanvas(windowWidth, windowHeight);
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(16 * scaleFactor);
   noStroke();
 }
 
@@ -35,15 +38,15 @@ function draw() {
 
   // Draw info button
   fill(255);
-  ellipse(width - 30, 30, 40);
+  ellipse(width - 30 * scaleFactor, 30 * scaleFactor, 40 * scaleFactor);
   fill(0);
-  textSize(24);
-  text("?", width - 30, 30);
+  textSize(24 * scaleFactor);
+  text("?", width - 30 * scaleFactor, 30 * scaleFactor);
 
   // Title
   if (showTitle) {
     fill(255, titleAlpha);
-    textSize(32);
+    textSize(32 * scaleFactor);
     text("Disk Floater Music", width / 2, height / 2);
     if (disks.length > 0) {
       titleAlpha -= 1; // fade out slowly
@@ -51,13 +54,13 @@ function draw() {
     }
   }
 
-  // Info box (draw last so it’s on top)
+  // Info box
   if (infoOpen) {
     fill(50, 255);
     rectMode(CENTER);
-    rect(width / 2, height / 2, 400, 200, 20);
+    rect(width / 2, height / 2, 400 * scaleFactor, 200 * scaleFactor, 20 * scaleFactor);
     fill(255);
-    textSize(16);
+    textSize(16 * scaleFactor);
     text(
       "Click to spawn a disk.\nDrag a disk to throw it.\nCollisions play notes according to size.\nMax 15 disks. \n",
       width / 2,
@@ -68,15 +71,15 @@ function draw() {
 
 function mousePressed() {
   // Check info button
-  if (dist(mouseX, mouseY, width - 30, 30) < 20) {
+  if (dist(mouseX, mouseY, width - 30 * scaleFactor, 30 * scaleFactor) < 20 * scaleFactor) {
     infoOpen = !infoOpen;
     return;
   }
 
   // Close info box if clicked outside
   if (infoOpen) {
-    if (!(mouseX > width / 2 - 200 && mouseX < width / 2 + 200 &&
-          mouseY > height / 2 - 100 && mouseY < height / 2 + 100)) {
+    if (!(mouseX > width / 2 - 200 * scaleFactor && mouseX < width / 2 + 200 * scaleFactor &&
+          mouseY > height / 2 - 100 * scaleFactor && mouseY < height / 2 + 100 * scaleFactor)) {
       infoOpen = false;
       return;
     }
@@ -93,7 +96,7 @@ function mousePressed() {
 
   // Spawn new disk if under cap
   if (disks.length < 15) {
-    let r = random(30, 70);
+    let r = random(30 * scaleFactor, 70 * scaleFactor);
     disks.push(new Disk(r, createVector(mouseX, mouseY)));
   }
 }
@@ -143,7 +146,7 @@ class Disk {
     this.pos = pos || createVector(random(r, width - r), random(r, height - r));
     this.vel = p5.Vector.random2D().mult(random(1, 2));
     this.col = color(random(100, 255), random(100, 255), random(150, 255), 200);
-    this.freq = map(this.r, 30, 70, 130.81, 1046.50);
+    this.freq = map(this.r, 30 * scaleFactor, 70 * scaleFactor, 130.81, 1046.50);
     this.noteName = freqToNoteName(this.freq);
   }
 
@@ -163,8 +166,9 @@ class Disk {
     fill(this.col);
     ellipse(this.pos.x, this.pos.y, this.r * 2);
     stroke(0);
-    strokeWeight(2);
+    strokeWeight(2 * scaleFactor);
     fill(255);
+    textSize(16 * scaleFactor);
     text(this.noteName, this.pos.x, this.pos.y);
     noStroke();
   }
