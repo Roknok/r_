@@ -1,5 +1,8 @@
 let disks = [];
 let grabbedDisk = null;
+let infoOpen = false;
+let showTitle = true;
+let titleAlpha = 255;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -11,9 +14,9 @@ function setup() {
 function draw() {
   background(20, 40, 70, 60);
 
+  // Draw disks
   for (let i = 0; i < disks.length; i++) {
     let d1 = disks[i];
-
     if (d1 !== grabbedDisk) d1.move();
     d1.display();
 
@@ -23,15 +26,62 @@ function draw() {
         let relVel = p5.Vector.sub(d1.vel, d2.vel).mag();
         d1.resolveCollision(d2);
 
-        // Play note for both disks on collision
         playNote(d1.freq, relVel);
         playNote(d2.freq, relVel);
       }
     }
   }
+
+  // Draw info button
+  fill(255);
+  ellipse(width - 30, 30, 40);
+  fill(0);
+  textSize(24);
+  text("?", width - 30, 30);
+
+  // Title
+  if (showTitle) {
+    fill(255, titleAlpha);
+    textSize(32);
+    text("Disk Floater Music", width / 2, height / 2);
+    if (disks.length > 0) {
+      titleAlpha -= 1; // fade out slowly
+      if (titleAlpha <= 0) showTitle = false;
+    }
+  }
+
+  // Info box (draw last so it’s on top)
+  if (infoOpen) {
+    fill(50, 255);
+    rectMode(CENTER);
+    rect(width / 2, height / 2, 400, 200, 20);
+    fill(255);
+    textSize(16);
+    text(
+      "Click to spawn a disk.\nDrag a disk to throw it.\nCollisions play notes according to size.\nMax 15 disks. \n",
+      width / 2,
+      height / 2
+    );
+  }
 }
 
 function mousePressed() {
+  // Check info button
+  if (dist(mouseX, mouseY, width - 30, 30) < 20) {
+    infoOpen = !infoOpen;
+    return;
+  }
+
+  // Close info box if clicked outside
+  if (infoOpen) {
+    if (!(mouseX > width / 2 - 200 && mouseX < width / 2 + 200 &&
+          mouseY > height / 2 - 100 && mouseY < height / 2 + 100)) {
+      infoOpen = false;
+      return;
+    }
+  }
+
+  // Grab existing disk
   for (let d of disks) {
     if (dist(mouseX, mouseY, d.pos.x, d.pos.y) < d.r) {
       grabbedDisk = d;
@@ -39,8 +89,12 @@ function mousePressed() {
       return;
     }
   }
-  let r = random(30, 70);
-  disks.push(new Disk(r, createVector(mouseX, mouseY)));
+
+  // Spawn new disk if under cap
+  if (disks.length < 15) {
+    let r = random(30, 70);
+    disks.push(new Disk(r, createVector(mouseX, mouseY)));
+  }
 }
 
 function mouseDragged() {
@@ -72,7 +126,6 @@ function playNote(freq, force) {
   setTimeout(() => osc.stop(), (release + 1) * 1000);
 }
 
-// Convert frequency to note name
 function freqToNoteName(freq) {
   const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const A4 = 440;
@@ -89,8 +142,6 @@ class Disk {
     this.pos = pos || createVector(random(r, width - r), random(r, height - r));
     this.vel = p5.Vector.random2D().mult(random(1, 2));
     this.col = color(random(100, 255), random(100, 255), random(150, 255), 200);
-
-    // Frequency now spans C3 (130.81 Hz) to C6 (1046.50 Hz)
     this.freq = map(this.r, 30, 70, 130.81, 1046.50);
     this.noteName = freqToNoteName(this.freq);
   }
@@ -98,38 +149,18 @@ class Disk {
   move() {
     this.pos.add(this.vel);
 
-    // Edge collision - bounce and play its own frequency
     let hit = false;
-    if (this.pos.x < this.r) {
-      this.vel.x *= -1;
-      this.pos.x = this.r;
-      hit = true;
-    }
-    if (this.pos.x > width - this.r) {
-      this.vel.x *= -1;
-      this.pos.x = width - this.r;
-      hit = true;
-    }
-    if (this.pos.y < this.r) {
-      this.vel.y *= -1;
-      this.pos.y = this.r;
-      hit = true;
-    }
-    if (this.pos.y > height - this.r) {
-      this.vel.y *= -1;
-      this.pos.y = height - this.r;
-      hit = true;
-    }
+    if (this.pos.x < this.r) { this.vel.x *= -1; this.pos.x = this.r; hit = true; }
+    if (this.pos.x > width - this.r) { this.vel.x *= -1; this.pos.x = width - this.r; hit = true; }
+    if (this.pos.y < this.r) { this.vel.y *= -1; this.pos.y = this.r; hit = true; }
+    if (this.pos.y > height - this.r) { this.vel.y *= -1; this.pos.y = height - this.r; hit = true; }
 
-    if (hit) {
-      playNote(this.freq, 2); // small force for edge hit
-    }
+    if (hit) playNote(this.freq, 2);
   }
 
   display() {
     fill(this.col);
     ellipse(this.pos.x, this.pos.y, this.r * 2);
-
     stroke(0);
     strokeWeight(2);
     fill(255);
@@ -148,7 +179,6 @@ class Disk {
     let overlap = (this.r + other.r) - distBetween;
 
     normal.normalize();
-
     this.pos.add(normal.copy().mult(overlap / 2));
     other.pos.sub(normal.copy().mult(overlap / 2));
 
