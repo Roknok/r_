@@ -3,34 +3,19 @@ let grabbedDisk = null;
 let infoOpen = false;
 let showTitle = true;
 let titleAlpha = 255;
-let refreshButton;
 
 // scaling factor
 let scaleFactor = 2;
 
 function setup() {
-  pixelDensity(0.9)
+  pixelDensity(0.9);
   createCanvas(windowWidth, windowHeight);
   textAlign(CENTER, CENTER);
   textSize(16 * scaleFactor);
   noStroke();
-    refreshButton = createButton("⟳");
-  refreshButton.position(10, 10);   // right next to the ?
-  refreshButton.style("padding", "5px 10px");
-  refreshButton.style("font-size", 20 * scaleFactor+"px");
-  refreshButton.style("background", "rgba(255,255,255,0.8)");
-  refreshButton.style("border", "none");
-  refreshButton.style("border-radius", "5px");
-  refreshButton.style("cursor", "pointer");
- refreshButton.mousePressed((e) => {
-  e.stopPropagation();   // 👈 prevents the click from bubbling to canvas
-  disks = [];            // clear all disks
-    showTitle = true;
- titleAlpha = 255;
-});
-  
-  
-    document.body.style.overscrollBehavior = "none"; // modern way
+
+  // ✅ Disable pull-to-refresh
+  document.body.style.overscrollBehavior = "none"; 
   document.body.addEventListener("touchmove", (e) => {
     e.preventDefault();
   }, { passive: false });
@@ -40,11 +25,10 @@ function setup() {
   document.addEventListener("touchend", (e) => {
     let now = new Date().getTime();
     if (now - lastTouchEnd <= 300) {
-      e.preventDefault(); // block zoom
+      e.preventDefault(); 
     }
     lastTouchEnd = now;
   }, { passive: false });
-
 }
 
 function draw() {
@@ -75,6 +59,13 @@ function draw() {
   textSize(24 * scaleFactor);
   text("?", width - 30 * scaleFactor, 30 * scaleFactor);
 
+  // Draw refresh button
+  fill(255);
+  ellipse(30 * scaleFactor, 30 * scaleFactor, 40 * scaleFactor);
+  fill(0);
+  textSize(24 * scaleFactor);
+  text("⟳", 30 * scaleFactor, 30 * scaleFactor);
+
   // Title
   if (showTitle) {
     fill(255, titleAlpha);
@@ -102,7 +93,15 @@ function draw() {
 }
 
 function mousePressed() {
-  // Check info button
+  // ✅ Check refresh button
+  if (dist(mouseX, mouseY, 30 * scaleFactor, 30 * scaleFactor) < 20 * scaleFactor) {
+    disks = [];
+    showTitle = true;
+    titleAlpha = 255;
+    return;
+  }
+
+  // ✅ Check info button
   if (dist(mouseX, mouseY, width - 30 * scaleFactor, 30 * scaleFactor) < 20 * scaleFactor) {
     infoOpen = !infoOpen;
     return;
@@ -145,7 +144,6 @@ function mouseReleased() {
   }
 }
 
-
 function touchStarted() {
   mousePressed();
   return false; // prevent default scrolling
@@ -160,7 +158,6 @@ function touchEnded() {
   mouseReleased();
   return false;
 }
-
 
 function playNote(freq, force) {
   let amp = constrain(map(force, 0, 10, 0.1, 0.6), 0.05, 0.6);
