@@ -3,6 +3,7 @@ let grabbedDisk = null;
 let infoOpen = false;
 let showTitle = true;
 let titleAlpha = 255;
+let refreshButton;
 
 // scaling factor
 let scaleFactor = 1.5;
@@ -13,6 +14,21 @@ function setup() {
   textAlign(CENTER, CENTER);
   textSize(16 * scaleFactor);
   noStroke();
+    refreshButton = createButton("⟳");
+  refreshButton.position(10, 10);   // right next to the ?
+  refreshButton.style("padding", "5px 10px");
+  refreshButton.style("font-size", "20px");
+  refreshButton.style("background", "rgba(255,255,255,0.8)");
+  refreshButton.style("border", "none");
+  refreshButton.style("border-radius", "5px");
+  refreshButton.style("cursor", "pointer");
+ refreshButton.mousePressed((e) => {
+  e.stopPropagation();   // 👈 prevents the click from bubbling to canvas
+  disks = [];            // clear all disks
+    showTitle = true;
+ titleAlpha = 255;
+});
+
 }
 
 function draw() {
