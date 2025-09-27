@@ -5,6 +5,7 @@ let showTitle = true;
 let titleAlpha = 255;
 
 function setup() {
+  pixelDensity(1)
   createCanvas(windowWidth, windowHeight);
   textAlign(CENTER, CENTER);
   textSize(16);
