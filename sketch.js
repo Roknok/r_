@@ -6,7 +6,7 @@ let titleAlpha = 255;
 let refreshButton;
 
 // scaling factor
-let scaleFactor = 1.5;
+let scaleFactor = 2;
 
 function setup() {
   pixelDensity(0.9)
@@ -17,7 +17,7 @@ function setup() {
     refreshButton = createButton("⟳");
   refreshButton.position(10, 10);   // right next to the ?
   refreshButton.style("padding", "5px 10px");
-  refreshButton.style("font-size", "20px");
+  refreshButton.style("font-size", 20 * scaleFactor+"px");
   refreshButton.style("background", "rgba(255,255,255,0.8)");
   refreshButton.style("border", "none");
   refreshButton.style("border-radius", "5px");
@@ -28,6 +28,22 @@ function setup() {
     showTitle = true;
  titleAlpha = 255;
 });
+  
+  
+    document.body.style.overscrollBehavior = "none"; // modern way
+  document.body.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+  }, { passive: false });
+
+  // ✅ Stop double-tap to zoom
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", (e) => {
+    let now = new Date().getTime();
+    if (now - lastTouchEnd <= 300) {
+      e.preventDefault(); // block zoom
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
 
 }
 
@@ -128,6 +144,23 @@ function mouseReleased() {
     grabbedDisk = null;
   }
 }
+
+
+function touchStarted() {
+  mousePressed();
+  return false; // prevent default scrolling
+}
+
+function touchMoved() {
+  mouseDragged();
+  return false;
+}
+
+function touchEnded() {
+  mouseReleased();
+  return false;
+}
+
 
 function playNote(freq, force) {
   let amp = constrain(map(force, 0, 10, 0.1, 0.6), 0.05, 0.6);
