@@ -1,248 +1,284 @@
-let disks = [];
-let grabbedDisk = null;
-let infoOpen = false;
-let showTitle = true;
-let titleAlpha = 255;
+let player;
+let obstacles = [];
+let lane = 1; // target lane (0 = left, 1 = center, 2 = right)
+let speed = 25;
+let score = 0;
+let lives = 3;
+let gameOver = false;
+let imm = false
+// swipe tracking
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
 
-// scaling factor
-let scaleFactor = 2;
+// restart button
+let restartButton;
+
+// HTML elements for HUD
+let scoreDiv, livesDiv, gameOverDiv;
 
 function setup() {
-  pixelDensity(0.9);
-  createCanvas(windowWidth, windowHeight);
-  textAlign(CENTER, CENTER);
-  textSize(16 * scaleFactor);
-  noStroke();
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  player = new Player();
 
-  // ✅ Disable pull-to-refresh
-  document.body.style.overscrollBehavior = "none"; 
-  document.body.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-  }, { passive: false });
+  // Immersion toggle slider
+  let immersionDiv = createDiv("Immersion: ");
+  immersionDiv.style('position', 'absolute');
+  immersionDiv.style('top', '100px');
+  immersionDiv.style('left', '20px');
+  immersionDiv.style('color', 'white');
+  immersionDiv.style('font-size', '24px');
+// Create slider-style toggle
+let sliderWrapper = createDiv();
+sliderWrapper.style('position', 'absolute');
+sliderWrapper.style('top', '100px');
+sliderWrapper.style('left', '150px');
+sliderWrapper.style('width', '60px');
+sliderWrapper.style('height', '30px');
+sliderWrapper.style('background', '#555');
+sliderWrapper.style('border-radius', '15px');
+sliderWrapper.style('cursor', 'pointer');
 
-  // ✅ Stop double-tap to zoom
-  let lastTouchEnd = 0;
-  document.addEventListener("touchend", (e) => {
-    let now = new Date().getTime();
-    if (now - lastTouchEnd <= 300) {
-      e.preventDefault(); 
-    }
-    lastTouchEnd = now;
-  }, { passive: false });
+let sliderCircle = createDiv();
+sliderCircle.style('width', '28px');
+sliderCircle.style('height', '28px');
+sliderCircle.style('border-radius', '50%');
+sliderCircle.style('position', 'absolute');
+sliderCircle.style('top', '1px');
+sliderCircle.style('left', imm ? '31px' : '1px');
+sliderCircle.style('background', imm ? '#0f0' : '#f00'); // green if on, red if off
+sliderCircle.parent(sliderWrapper);
+
+sliderWrapper.mousePressed(() => {
+  imm = !imm;
+  sliderCircle.style('left', imm ? '31px' : '1px');
+  sliderCircle.style('background', imm ? '#0f0' : '#f00');
+});
+  sliderWrapper.touchStarted(() => {
+  imm = !imm;
+  sliderCircle.style('left', imm ? '31px' : '1px');
+  sliderCircle.style('background', imm ? '#0f0' : '#f00');
+});
+
+  // HUD
+  scoreDiv = createDiv("Score: 0");
+  scoreDiv.style('position', 'absolute');
+  scoreDiv.style('top', '20px');
+  scoreDiv.style('left', '20px');
+  scoreDiv.style('color', 'white');
+  scoreDiv.style('font-size', '24px');
+
+  livesDiv = createDiv("Lives: 3");
+  livesDiv.style('position', 'absolute');
+  livesDiv.style('top', '60px');
+  livesDiv.style('left', '20px');
+  livesDiv.style('color', 'white');
+  livesDiv.style('font-size', '24px');
+
+  gameOverDiv = createDiv("");
+  gameOverDiv.style('position', 'absolute');
+  gameOverDiv.style('white-space', 'nowrap');
+  gameOverDiv.style('top', '50%');
+  gameOverDiv.style('left', '50%');
+  gameOverDiv.style('transform', 'translate(-50%, -50%)');
+  gameOverDiv.style('color', 'red');
+  gameOverDiv.style('font-size', '40px');
+  gameOverDiv.style('text-align', 'center');
+
+  // restart button (hidden initially)
+  restartButton = createButton("Restart");
+  restartButton.size(120, 50);
+  restartButton.style('font-size', '18px');
+  restartButton.position(width/2 - 60, height/2 + 80);
+  restartButton.hide();
+  restartButton.mousePressed(restartGame);
+  restartButton.touchStarted(restartGame);
 }
 
 function draw() {
-  background(20, 40, 70, 60);
+  background(100);
 
-  // Draw disks
-  for (let i = 0; i < disks.length; i++) {
-    let d1 = disks[i];
-    if (d1 !== grabbedDisk) d1.move();
-    d1.display();
+  // camera
+  if (!imm){
+    camera(0, -550, 1000, 0, 0, 0, 0, 1, 0);
+  }else{
+    camera(player.x, -400 - player.y, player.z + 800, player.x, -50 - player.y, player.z, 0, 1, 0);
+  }
 
-    for (let j = i + 1; j < disks.length; j++) {
-      let d2 = disks[j];
-      if (d1.checkCollision(d2)) {
-        let relVel = p5.Vector.sub(d1.vel, d2.vel).mag();
-        d1.resolveCollision(d2);
+  // lights
+  directionalLight(255, 255, 255, 0.3, -1, -0.5);
+  ambientLight(150);
 
-        playNote(d1.freq, relVel);
-        playNote(d2.freq, relVel);
+  // draw lanes
+  push();
+  for (let i = -1; i <= 1; i++) {
+    push();
+    translate(i * 200, 50, -3000);
+    fill(100, 100, 120);
+    box(180, 10, 12000);
+    pop();
+  }
+  pop();
+
+  if (!gameOver) {
+    if (frameCount % 60 === 0) speed += 0.5;
+
+    // draw player shadow
+    push();
+    translate(player.x, 0, player.z);
+    rotateX(HALF_PI);
+    noStroke();
+    fill(0, 50);
+    rect(-25, -10, 50, 40);
+    pop();
+
+    player.update();
+    player.show();
+
+    if (frameCount % round(1500/speed) === 0) spawnObstacles();
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      obstacles[i].update();
+      obstacles[i].show();
+
+      if (player.lane === obstacles[i].lane &&
+          obstacles[i].z > player.z - 50 &&
+          obstacles[i].z < player.z + 50) {
+        if (player.y < 60) {
+          lives--;
+          obstacles.splice(i, 1);
+          if (lives <= 0) {
+            gameOver = true;
+            showGameOver();
+          }
+        }
       }
+
+      if (obstacles[i] && obstacles[i].z > 600) obstacles.splice(i, 1);
     }
+
+    score += 0.2;
   }
 
-  // Draw info button
-  fill(255);
-  ellipse(width - 30 * scaleFactor, 30 * scaleFactor, 40 * scaleFactor);
-  fill(0);
-  textSize(24 * scaleFactor);
-  text("?", width - 30 * scaleFactor, 30 * scaleFactor);
-
-  // Draw refresh button
-  fill(255);
-  ellipse(30 * scaleFactor, 30 * scaleFactor, 40 * scaleFactor);
-  fill(0);
-  textSize(24 * scaleFactor);
-  text("⟳", 30 * scaleFactor, 30 * scaleFactor);
-
-  // Title
-  if (showTitle) {
-    fill(255, titleAlpha);
-    textSize(32 * scaleFactor);
-    text("Disk Floater Music", width / 2, height / 2);
-    if (disks.length > 0) {
-      titleAlpha -= 1; // fade out slowly
-      if (titleAlpha <= 0) showTitle = false;
-    }
-  }
-
-  // Info box
-  if (infoOpen) {
-    fill(50, 255);
-    rectMode(CENTER);
-    rect(width / 2, height / 2, 400 * scaleFactor, 200 * scaleFactor, 20 * scaleFactor);
-    fill(255);
-    textSize(16 * scaleFactor);
-    text(
-      "Click to spawn a disk.\nDrag a disk to throw it.\nCollisions play notes according to size.\nMax 15 disks. \n",
-      width / 2,
-      height / 2
-    );
-  }
+  scoreDiv.html("Score: " + floor(score));
+  livesDiv.html("Lives: " + lives);
 }
 
-function mousePressed() {
-  // ✅ Check refresh button
-  if (dist(mouseX, mouseY, 30 * scaleFactor, 30 * scaleFactor) < 20 * scaleFactor) {
-    disks = [];
-    showTitle = true;
-    titleAlpha = 255;
-    return;
-  }
+function spawnObstacles() {
+  let lanesToSpawn = [];
+  let numObstacles;
+  let r = random();
+  if (r < 0.6) numObstacles = 1;
+  else if (r < 0.9) numObstacles = 2;
+  else numObstacles = 3;
 
-  // ✅ Check info button
-  if (dist(mouseX, mouseY, width - 30 * scaleFactor, 30 * scaleFactor) < 20 * scaleFactor) {
-    infoOpen = !infoOpen;
-    return;
+  while (lanesToSpawn.length < numObstacles) {
+    let l = int(random(0, 3));
+    if (!lanesToSpawn.includes(l)) lanesToSpawn.push(l);
   }
-
-  // Close info box if clicked outside
-  if (infoOpen) {
-    if (!(mouseX > width / 2 - 200 * scaleFactor && mouseX < width / 2 + 200 * scaleFactor &&
-          mouseY > height / 2 - 100 * scaleFactor && mouseY < height / 2 + 100 * scaleFactor)) {
-      infoOpen = false;
-      return;
-    }
-  }
-
-  // Grab existing disk
-  for (let d of disks) {
-    if (dist(mouseX, mouseY, d.pos.x, d.pos.y) < d.r) {
-      grabbedDisk = d;
-      d.vel.set(0, 0);
-      return;
-    }
-  }
-
-  // Spawn new disk if under cap
-  if (disks.length < 15) {
-    let r = random(30 * scaleFactor, 70 * scaleFactor);
-    disks.push(new Disk(r, createVector(mouseX, mouseY)));
-  }
+  lanesToSpawn.forEach(l => obstacles.push(new Obstacle(l)));
 }
 
-function mouseDragged() {
-  if (grabbedDisk) grabbedDisk.pos.set(mouseX, mouseY);
+function keyPressed() {
+  if (gameOver) return;
+  if (keyCode === LEFT_ARROW) lane = max(0, lane - 1);
+  else if (keyCode === RIGHT_ARROW) lane = min(2, lane + 1);
+  else if (keyCode === UP_ARROW || key === ' ') jumpPlayer();
 }
 
-function mouseReleased() {
-  if (grabbedDisk) {
-    let mouseVel = createVector(mouseX - pmouseX, mouseY - pmouseY);
-    grabbedDisk.vel = mouseVel.mult(0.5);
-    grabbedDisk = null;
+function jumpPlayer() {
+  if (!player.jumping) {
+    player.vy = 13;
+    player.jumping = true;
   }
 }
 
 function touchStarted() {
-  mousePressed();
-  return false; // prevent default scrolling
-}
-
-function touchMoved() {
-  mouseDragged();
+  touchStartX = mouseX;
+  touchStartY = mouseY;
   return false;
 }
 
 function touchEnded() {
-  mouseReleased();
+  if (gameOver) return false;
+  touchEndX = mouseX;
+  touchEndY = mouseY;
+
+  let dx = touchEndX - touchStartX;
+  let dy = touchEndY - touchStartY;
+
+  if (abs(dx) > abs(dy)) {
+    if (dx > 50) lane = min(2, lane + 1);
+    else if (dx < -50) lane = max(0, lane - 1);
+  } else {
+    if (dy < -50) jumpPlayer();
+  }
   return false;
 }
 
-function playNote(freq, force) {
-  let amp = constrain(map(force, 0, 10, 0.1, 0.6), 0.05, 0.6);
-  let release = constrain(map(force, 0, 10, 0.3, 1.5), 0.1, 1.5);
-
-  let osc = new p5.Oscillator('triangle');
-  let env = new p5.Envelope();
-
-  env.setADSR(0.05, 0.2, 0.2, release);
-  env.setRange(amp, 0);
-
-  osc.freq(freq);
-  osc.start();
-  env.play(osc, 0, 0.5);
-
-  setTimeout(() => osc.stop(), (release + 1) * 1000);
+function showGameOver() {
+  gameOverDiv.html("GAME OVER<br>Final Score: " + floor(score));
+  restartButton.show();
 }
 
-function freqToNoteName(freq) {
-  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const A4 = 440;
-  const semitone = 12 * Math.log2(freq / A4);
-  const midi = Math.round(69 + semitone);
-  const octave = Math.floor(midi / 12) - 1;
-  const note = notes[midi % 12];
-  return note + octave;
+function restartGame() {
+  score = 0;
+  lives = 3;
+  speed = 10;
+  obstacles = [];
+  lane = 1;
+  player = new Player();
+  gameOver = false;
+  gameOverDiv.html("");
+  restartButton.hide();
 }
 
-class Disk {
-  constructor(r, pos) {
-    this.r = r;
-    this.pos = pos || createVector(random(r, width - r), random(r, height - r));
-    this.vel = p5.Vector.random2D().mult(random(1, 2));
-    this.col = color(random(100, 255), random(100, 255), random(150, 255), 200);
-    this.freq = map(this.r, 30 * scaleFactor, 70 * scaleFactor, 130.81, 1046.50);
-    this.noteName = freqToNoteName(this.freq);
+class Player {
+  constructor() {
+    this.lane = 1;
+    this.x = 0;
+    this.y = 0;
+    this.z = 200;
+    this.vy = 0;
+    this.jumping = false;
   }
-
-  move() {
-    this.pos.add(this.vel);
-
-    let hit = false;
-    if (this.pos.x < this.r) { this.vel.x *= -1; this.pos.x = this.r; hit = true; }
-    if (this.pos.x > width - this.r) { this.vel.x *= -1; this.pos.x = width - this.r; hit = true; }
-    if (this.pos.y < this.r) { this.vel.y *= -1; this.pos.y = this.r; hit = true; }
-    if (this.pos.y > height - this.r) { this.vel.y *= -1; this.pos.y = height - this.r; hit = true; }
-
-    if (hit) playNote(this.freq, 2);
-  }
-
-  display() {
-    fill(this.col);
-    ellipse(this.pos.x, this.pos.y, this.r * 2);
-    stroke(0);
-    strokeWeight(2 * scaleFactor);
-    fill(255);
-    textSize(16 * scaleFactor);
-    text(this.noteName, this.pos.x, this.pos.y);
-    noStroke();
-  }
-
-  checkCollision(other) {
-    return dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.r + other.r;
-  }
-
-  resolveCollision(other) {
-    let normal = p5.Vector.sub(this.pos, other.pos);
-    let distBetween = normal.mag();
-    if (distBetween === 0) return;
-    let overlap = (this.r + other.r) - distBetween;
-
-    normal.normalize();
-    this.pos.add(normal.copy().mult(overlap / 2));
-    other.pos.sub(normal.copy().mult(overlap / 2));
-
-    let relativeVelocity = p5.Vector.sub(this.vel, other.vel);
-    let sepVel = relativeVelocity.dot(normal);
-    if (sepVel < 0) {
-      let impulse = normal.mult(sepVel);
-      this.vel.sub(impulse);
-      other.vel.add(impulse);
+  update() {
+    this.lane = lane;
+    let targetX = (lane - 1) * 200;
+    this.x = lerp(this.x, targetX, 0.2);
+    this.y += this.vy;
+    this.vy -= 0.4;
+    if (this.y < 0) {
+      this.y = 0;
+      this.vy = 0;
+      this.jumping = false;
     }
   }
+  show() {
+    push();
+    translate(this.x, -50 - this.y, this.z);
+    fill(0, 200, 150);
+    box(50, 100, 50);
+    pop();
+  }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+class Obstacle {
+  constructor(lane) {
+    this.lane = lane;
+    this.x = (lane - 1) * 200;
+    this.y = -30;
+    this.z = -6000;
+  }
+  update() {
+    this.z += speed;
+  }
+  show() {
+    push();
+    translate(this.x, this.y, this.z);
+    fill(200, 50, 50);
+    box(80, 60, 80);
+    pop();
+  }
 }
