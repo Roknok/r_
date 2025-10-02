@@ -16,7 +16,7 @@
     }
 
     .envelope {
-      width: 90vw;
+      width: 90vmin; /* shorter side scaling */
       aspect-ratio: 1.5;
       background: #fff0f5;
       position: relative;
@@ -52,7 +52,7 @@
       border-radius: 8px 8px 0 0;
     }
 
-    .crease{
+    .crease {
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.2);
@@ -65,7 +65,7 @@
       border-radius: 8px;
     }
 
-    .crease2{
+    .crease2 {
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.2);
@@ -79,7 +79,7 @@
     }
 
     .letter {
-      font-size: 3vw;
+      font-size: 3vmin; /* scalable text */
       width: 90%;
       height: 90%;
       background: #fff;
@@ -107,7 +107,7 @@
 
     .letter h2 {
       color: #d6336c;
-      margin-bottom: 3vw;
+      margin-bottom: 3vmin;
     }
 
     .letter p {
@@ -124,8 +124,8 @@
       position: absolute;
       top: 40%; /* above the envelope */
       left: 50%;
-      width: 14vw;
-      height: 14vw;
+      width: 14vmin;
+      height: 14vmin;
       background: #d6336c;
       transform: translateX(-50%) rotate(-45deg);
       transition: transform 1.2s ease, opacity 1.2s ease;
@@ -136,19 +136,19 @@
     .heart::after {
       content: '';
       position: absolute;
-      width: 14vw;
-      height: 14vw;
+      width: 14vmin;
+      height: 14vmin;
       background: #d6336c;
       border-radius: 50%;
     }
 
     .heart::before {
-      top: -7vw;
+      top: -7vmin;
       left: 0;
     }
 
     .heart::after {
-      left: 7vw;
+      left: 7vmin;
       top: 0;
     }
 
