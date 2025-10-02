@@ -13,10 +13,11 @@
       justify-content: center;
       background: linear-gradient(135deg, #ffdde1, #ee9ca7);
       font-family: 'Georgia', serif;
+      overflow: hidden; /* keep confetti inside screen */
     }
 
     .envelope {
-      width: 90vmin; /* shorter side scaling */
+      width: 90vmin;
       aspect-ratio: 1.5;
       background: #fff0f5;
       position: relative;
@@ -24,68 +25,48 @@
       perspective: 1000px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
       border-radius: 8px;
+      z-index: 2;
     }
 
+    .flap, .grey, .crease, .crease2 {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: top;
+      transition: transform 1s ease;
+      border-radius: 8px;
+    }
     .flap {
-      width: 100%;
-      height: 100%;
       background: #f08080;
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: top;
-      transition: transform 1s ease;
       clip-path: polygon(0 0, 50% 50%, 100% 0);
       border-radius: 8px 8px 0 0;
+      z-index: 5;
     }
-
     .grey {
-      width: 100%;
-      height: 100%;
       background: rgba(0, 0, 0, 0.1);
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: top;
-      transition: transform 1s ease;
       clip-path: polygon(0 0, 50% 50%, 100% 0);
       border-radius: 8px 8px 0 0;
+      z-index: 2;
     }
-
     .crease {
-      width: 100%;
-      height: 100%;
       background: rgba(0, 0, 0, 0.2);
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: top;
-      transition: transform 1s ease;
       clip-path: polygon(-0.5% 0, 100% 100.5%,100.5% 100%, 0.5% 0);
-      border-radius: 8px;
+      z-index: 2;
     }
-
     .crease2 {
-      width: 100%;
-      height: 100%;
       background: rgba(0, 0, 0, 0.2);
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: top;
-      transition: transform 1s ease;
       clip-path: polygon(-0.5% 100%, 100.5% -1%,100.5% 0, 0% 100.5%);
-      border-radius: 8px;
+      z-index: 2;
     }
 
     .letter {
-      font-size: 3vmin; /* scalable text */
+      font-size: 3vmin;
       width: 90%;
       height: 90%;
       background: #fff;
       position: absolute;
-      top: 5%;
-      left: 5%;
+      top: 5%; left: 5%;
       padding: 3vh;
       box-sizing: border-box;
       border-radius: 6px;
@@ -93,36 +74,19 @@
       opacity: 0;
       transition: opacity 1s ease 0.5s;
       text-align: center;
-      overflow: hidden;
+      z-index: 6;
     }
+    .letter.show { opacity: 1; }
+    .letter.hide { opacity: 0; transition: opacity 0.1s ease; }
+    .letter h2 { color: #d6336c; margin-bottom: 3vmin; }
+    .letter p { color: #444; line-height: 1.5; }
 
-    .letter.show {
-      opacity: 1;
-    }
+    .open .flap { transform: rotateX(-180deg);}
 
-    .letter.hide {
-      opacity: 0;
-      transition: opacity 0.1s ease;
-    }
-
-    .letter h2 {
-      color: #d6336c;
-      margin-bottom: 3vmin;
-    }
-
-    .letter p {
-      color: #444;
-      line-height: 1.5;
-    }
-
-    .open .flap {
-      transform: rotateX(-180deg);
-    }
-
-    /* Heart shape with CSS */
+    /* Heart */
     .heart {
       position: absolute;
-      top: 40%; /* above the envelope */
+      top: 40%;
       left: 50%;
       width: 14vmin;
       height: 14vmin;
@@ -130,10 +94,9 @@
       transform: translateX(-50%) rotate(-45deg);
       transition: transform 1.2s ease, opacity 1.2s ease;
       pointer-events: none;
+      z-index: 6;
     }
-
-    .heart::before,
-    .heart::after {
+    .heart::before, .heart::after {
       content: '';
       position: absolute;
       width: 14vmin;
@@ -141,57 +104,112 @@
       background: #d6336c;
       border-radius: 50%;
     }
-
-    .heart::before {
-      top: -7vmin;
-      left: 0;
-    }
-
-    .heart::after {
-      left: 7vmin;
-      top: 0;
-    }
-
+    .heart::before { top: -7vmin; left: 0; }
+    .heart::after { left: 7vmin; top: 0; }
     .heart.fly {
       transform: translate(-50%, -300%) scale(0.5) rotate(20deg);
       opacity: 0;
     }
+
+    /* Confetti canvas covers entire screen */
+    #confettiCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10; /* above everything */
+    }
   </style>
 </head>
 <body>
+  <!-- Confetti canvas is now OUTSIDE envelope -->
+  <canvas id="confettiCanvas"></canvas>
+
   <div class="envelope" id="envelope">
     <div class="grey"></div>
     <div class="crease"></div>
     <div class="crease2"></div>
-    <div class="flap"></div>
-    
-    <!-- Heart drawn with CSS -->
-    <div class="heart" id="heart"></div>
-    
     <div class="letter" id="letter">
       <h2>My Dearest ❤️</h2>
       <p>
         Since you came into my life, everything has felt brighter and more meaningful. Thinking of you fills me with happiness, and you make me feel truly complete. Your presence is as melodious as music, and every moment with you makes my world better. Forever and always, my heart is yours. 💌
       </p>
     </div>
+    <div class="heart" id="heart"></div>
+    <div class="flap"></div>
   </div>
 
   <script>
     const envelope = document.getElementById('envelope');
     const letter = document.getElementById('letter');
     const heart = document.getElementById('heart');
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let confetti = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function createConfetti(x, y) {
+      const colors = ['#ff6b6b','#feca57','#1dd1a1','#54a0ff','#5f27cd','#ff9ff3'];
+      for (let i = 0; i < 6; i++) {
+        confetti.push({
+          x: x,
+          y: y,
+          dx: (Math.random() - 0.5) * 4,
+          dy: Math.random() * -4 - 2,
+          size: Math.random() * 4 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 80 + Math.random() * 60
+        });
+      }
+    }
+
+    function burstTop(rect) {
+      const steps = 15;
+      for (let i = 0; i <= steps; i++) {
+        let x = rect.left + (i/steps) * rect.width;
+        let y = rect.top; // top edge of letter
+        createConfetti(x, y);
+      }
+    }
+
+    function drawConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confetti.forEach((c, i) => {
+        ctx.fillStyle = c.color;
+        ctx.fillRect(c.x, c.y, c.size, c.size);
+        c.x += c.dx;
+        c.y += c.dy;
+        c.dy += 0.15; // gravity
+        c.life--;
+        if (c.life <= 0) confetti.splice(i, 1);
+      });
+      requestAnimationFrame(drawConfetti);
+    }
+    drawConfetti();
 
     envelope.addEventListener('click', () => {
       const isOpen = envelope.classList.toggle('open');
+      const rect = letter.getBoundingClientRect();
 
       if (isOpen) {
         letter.classList.remove('hide');
         letter.classList.add('show');
-        heart.classList.add('fly'); // heart flies away
+        heart.classList.add('fly');
+
+        // Confetti burst outside envelope
+        burstTop(rect);
       } else {
         letter.classList.remove('show');
         letter.classList.add('hide');
-        heart.classList.remove('fly'); // reset heart
+        heart.classList.remove('fly');
       }
     });
   </script>
