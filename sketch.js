@@ -113,7 +113,7 @@ function positionUI() {
 function initGame() {
   angle = 0;
   score = 0;
-  sectorSize = 140;
+  sectorSize = 260;
   sectorStart = random(0, 360);
   state = "playing";
 
