@@ -1,284 +1,231 @@
-let player;
-let obstacles = [];
-let lane = 1; // target lane (0 = left, 1 = center, 2 = right)
-let speed = 25;
+// =======================
+//   Sector Click Game
+//   HTML UI Version
+// =======================
+
+let angle = 0;
+let speed = 3;
+
+let sectorStart;
+let sectorSize;
+
 let score = 0;
-let lives = 3;
-let gameOver = false;
-let imm = false
-// swipe tracking
-let touchStartX = 0;
-let touchStartY = 0;
-let touchEndX = 0;
-let touchEndY = 0;
+let highScore = 0;
 
-// restart button
-let restartButton;
+let state = "playing";
 
-// HTML elements for HUD
-let scoreDiv, livesDiv, gameOverDiv;
+let restartBtn;
+let ignoreNextClick = false;
+
+// HTML elements
+let uiContainer;
+let scoreText;
+let highScoreText;
+let instr1;
+let instr2;
+let gameOverText;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
-  player = new Player();
+  pixelDensity(1);
+  createCanvas(windowWidth, windowHeight);
+  angleMode(DEGREES);
+  textFont("Arial, sans-serif");
 
-  // Immersion toggle slider
-  let immersionDiv = createDiv("Immersion: ");
-  immersionDiv.style('position', 'absolute');
-  immersionDiv.style('top', '100px');
-  immersionDiv.style('left', '20px');
-  immersionDiv.style('color', 'white');
-  immersionDiv.style('font-size', '24px');
-// Create slider-style toggle
-let sliderWrapper = createDiv();
-sliderWrapper.style('position', 'absolute');
-sliderWrapper.style('top', '100px');
-sliderWrapper.style('left', '150px');
-sliderWrapper.style('width', '60px');
-sliderWrapper.style('height', '30px');
-sliderWrapper.style('background', '#555');
-sliderWrapper.style('border-radius', '15px');
-sliderWrapper.style('cursor', 'pointer');
+  // LOAD HIGHSCORE
+  let saved = localStorage.getItem("highScore_sectorGame");
+  if (saved) highScore = int(saved);
 
-let sliderCircle = createDiv();
-sliderCircle.style('width', '28px');
-sliderCircle.style('height', '28px');
-sliderCircle.style('border-radius', '50%');
-sliderCircle.style('position', 'absolute');
-sliderCircle.style('top', '1px');
-sliderCircle.style('left', imm ? '31px' : '1px');
-sliderCircle.style('background', imm ? '#0f0' : '#f00'); // green if on, red if off
-sliderCircle.parent(sliderWrapper);
+  createUI();
 
-sliderWrapper.mousePressed(() => {
-  imm = !imm;
-  sliderCircle.style('left', imm ? '31px' : '1px');
-  sliderCircle.style('background', imm ? '#0f0' : '#f00');
-});
-  sliderWrapper.touchStarted(() => {
-  imm = !imm;
-  sliderCircle.style('left', imm ? '31px' : '1px');
-  sliderCircle.style('background', imm ? '#0f0' : '#f00');
-});
-
-  // HUD
-  scoreDiv = createDiv("Score: 0");
-  scoreDiv.style('position', 'absolute');
-  scoreDiv.style('top', '20px');
-  scoreDiv.style('left', '20px');
-  scoreDiv.style('color', 'white');
-  scoreDiv.style('font-size', '24px');
-
-  livesDiv = createDiv("Lives: 3");
-  livesDiv.style('position', 'absolute');
-  livesDiv.style('top', '60px');
-  livesDiv.style('left', '20px');
-  livesDiv.style('color', 'white');
-  livesDiv.style('font-size', '24px');
-
-  gameOverDiv = createDiv("");
-  gameOverDiv.style('position', 'absolute');
-  gameOverDiv.style('white-space', 'nowrap');
-  gameOverDiv.style('top', '50%');
-  gameOverDiv.style('left', '50%');
-  gameOverDiv.style('transform', 'translate(-50%, -50%)');
-  gameOverDiv.style('color', 'red');
-  gameOverDiv.style('font-size', '40px');
-  gameOverDiv.style('text-align', 'center');
-
-  // restart button (hidden initially)
-  restartButton = createButton("Restart");
-  restartButton.size(120, 50);
-  restartButton.style('font-size', '18px');
-  restartButton.position(width/2 - 60, height/2 + 80);
-  restartButton.hide();
-  restartButton.mousePressed(restartGame);
-  restartButton.touchStarted(restartGame);
+  initGame();
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  positionUI();
+}
+
+// ----------------------
+//   CREATE HTML UI
+// ----------------------
+function createUI() {
+  uiContainer = createDiv();
+  uiContainer.style("position", "fixed");
+  uiContainer.style("top", "0");
+  uiContainer.style("left", "0");
+  uiContainer.style("width", "100%");
+  uiContainer.style("text-align", "center");
+  uiContainer.style("padding", "20px");
+  uiContainer.style("color", "white");
+  uiContainer.style("font-family", "Arial, sans-serif");
+  uiContainer.style("pointer-events", "none");
+
+  scoreText = createDiv("");
+  scoreText.parent(uiContainer);
+  scoreText.style("font-size", "60px");
+
+  highScoreText = createDiv("");
+  highScoreText.parent(uiContainer);
+  highScoreText.style("font-size", "45px");
+  highScoreText.style("margin-bottom", "20px");
+
+  instr1 = createDiv("Click only when the arm is inside the green sector.");
+  instr1.parent(uiContainer);
+  instr1.style("font-size", "40px");
+  instr1.style("margin-top", "10px");
+
+  instr2 = createDiv("The sector shrinks each round.");
+  instr2.parent(uiContainer);
+  instr2.style("font-size", "40px");
+  instr2.style("margin-bottom", "20px");
+
+  gameOverText = createDiv("GAME OVER");
+  gameOverText.parent(uiContainer);
+  gameOverText.style("font-size", "60px");
+  gameOverText.style("margin-top", "40px");
+  gameOverText.style("display", "none");
+  gameOverText.style("color", "rgb(255,100,100)");
+
+  restartBtn = createButton("Restart");
+  restartBtn.style("padding", "30px 50px");
+  restartBtn.style("font-size", "60px");
+  restartBtn.style("border-radius", "10px");
+  restartBtn.style("display", "none");
+  restartBtn.style("z-index", "9999");
+  restartBtn.mousePressed(() => {
+    restartBtn.hide();
+    gameOverText.hide();
+    initGame();
+    ignoreNextClick = true;
+    setTimeout(() => (ignoreNextClick = false), 150);
+  });
+
+  positionUI();
+}
+
+function positionUI() {
+  restartBtn.position(width / 2 - restartBtn.elt.offsetWidth / 2, height * 0.55);
+}
+
+// ----------------------
+//   GAME RESET
+// ----------------------
+function initGame() {
+  angle = 0;
+  score = 0;
+  sectorSize = 140;
+  sectorStart = random(0, 360);
+  state = "playing";
+
+  restartBtn.hide();
+  gameOverText.hide();
+  instr1.show();
+  instr2.show();
+}
+
+// ----------------------
+//      DRAW
+// ----------------------
 function draw() {
-  background(100);
+  background(18);
 
-  // camera
-  if (!imm){
-    camera(0, -550, 1000, 0, 0, 0, 0, 1, 0);
-  }else{
-    camera(player.x, -400 - player.y, player.z + 800, player.x, -50 - player.y, player.z, 0, 1, 0);
-  }
+  updateUI();
 
-  // lights
-  directionalLight(255, 255, 255, 0.3, -1, -0.5);
-  ambientLight(150);
+  const R = min(width, height) * 0.33;
+  const circleCX = width / 2;
+  const circleCY = height * 0.62;  // below UI
 
-  // draw lanes
   push();
-  for (let i = -1; i <= 1; i++) {
-    push();
-    translate(i * 200, 50, -3000);
-    fill(100, 100, 120);
-    box(180, 10, 12000);
-    pop();
+  translate(circleCX, circleCY);
+
+  // circle
+  noFill();
+  stroke(255);
+  strokeWeight(3);
+  ellipse(0, 0, R * 2, R * 2);
+
+  // sector
+  noStroke();
+  fill(0, 200, 100, 160);
+  arc(0, 0, R * 2, R * 2, sectorStart, sectorStart + sectorSize, PIE);
+
+  // arm
+  let armX = R * cos(angle);
+  let armY = R * sin(angle);
+
+  let a = (angle % 360 + 360) % 360;
+  let s1 = (sectorStart % 360 + 360) % 360;
+  let s2 = s1 + sectorSize;
+
+  let glow = s2 <= 360 ? a >= s1 && a <= s2 : a >= s1 || a <= (s2 % 360);
+
+  // --- ARM RENDER ---
+  if (glow) {
+    for (let i = 14; i >= 1; i--) {
+      stroke(0, 255, 180, map(i, 1, 14, 40, 240));
+      line(0, 0, armX, armY);
+    }
+  } else {
+    stroke(255);
+    strokeWeight(4);
+    line(0, 0, armX, armY);
   }
+
   pop();
 
-  if (!gameOver) {
-    if (frameCount % 60 === 0) speed += 0.5;
-
-    // draw player shadow
-    push();
-    translate(player.x, 0, player.z);
-    rotateX(HALF_PI);
-    noStroke();
-    fill(0, 50);
-    rect(-25, -10, 50, 40);
-    pop();
-
-    player.update();
-    player.show();
-
-    if (frameCount % round(1500/speed) === 0) spawnObstacles();
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      obstacles[i].update();
-      obstacles[i].show();
-
-      if (player.lane === obstacles[i].lane &&
-          obstacles[i].z > player.z - 50 &&
-          obstacles[i].z < player.z + 50) {
-        if (player.y < 60) {
-          lives--;
-          obstacles.splice(i, 1);
-          if (lives <= 0) {
-            gameOver = true;
-            showGameOver();
-          }
-        }
-      }
-
-      if (obstacles[i] && obstacles[i].z > 600) obstacles.splice(i, 1);
-    }
-
-    score += 0.2;
+  if (state === "playing") {
+    angle += speed;
+    if (angle >= 360) angle -= 360;
   }
-
-  scoreDiv.html("Score: " + floor(score));
-  livesDiv.html("Lives: " + lives);
 }
 
-function spawnObstacles() {
-  let lanesToSpawn = [];
-  let numObstacles;
-  let r = random();
-  if (r < 0.6) numObstacles = 1;
-  else if (r < 0.9) numObstacles = 2;
-  else numObstacles = 3;
+// ----------------------
+//     UPDATE HTML UI
+// ----------------------
+function updateUI() {
+  scoreText.html("Score: " + score);
+  highScoreText.html("High Score: " + highScore);
 
-  while (lanesToSpawn.length < numObstacles) {
-    let l = int(random(0, 3));
-    if (!lanesToSpawn.includes(l)) lanesToSpawn.push(l);
+  if (state === "gameover") {
+    instr1.hide();
+    instr2.hide();
+    gameOverText.show();
+    restartBtn.show();
+    positionUI();
   }
-  lanesToSpawn.forEach(l => obstacles.push(new Obstacle(l)));
 }
 
-function keyPressed() {
-  if (gameOver) return;
-  if (keyCode === LEFT_ARROW) lane = max(0, lane - 1);
-  else if (keyCode === RIGHT_ARROW) lane = min(2, lane + 1);
-  else if (keyCode === UP_ARROW || key === ' ') jumpPlayer();
-}
-
-function jumpPlayer() {
-  if (!player.jumping) {
-    player.vy = 13;
-    player.jumping = true;
-  }
+// ----------------------
+//   INPUT HANDLING
+// ----------------------
+function mousePressed() {
+  handleClick();
 }
 
 function touchStarted() {
-  touchStartX = mouseX;
-  touchStartY = mouseY;
-  return false;
+  handleClick();
 }
 
-function touchEnded() {
-  if (gameOver) return false;
-  touchEndX = mouseX;
-  touchEndY = mouseY;
+function handleClick() {
+  if (ignoreNextClick) return;
+  if (state !== "playing") return;
 
-  let dx = touchEndX - touchStartX;
-  let dy = touchEndY - touchStartY;
+  let a = (angle % 360 + 360) % 360;
+  let s1 = (sectorStart % 360 + 360) % 360;
+  let s2 = s1 + sectorSize;
 
-  if (abs(dx) > abs(dy)) {
-    if (dx > 50) lane = min(2, lane + 1);
-    else if (dx < -50) lane = max(0, lane - 1);
+  let correct = s2 <= 360 ? a >= s1 && a <= s2 : a >= s1 || a <= (s2 % 360);
+
+  if (correct) {
+    score++;
+    sectorSize *= 0.85;
+    if (sectorSize < 12) sectorSize = 12;
+    sectorStart = random(0, 360);
   } else {
-    if (dy < -50) jumpPlayer();
-  }
-  return false;
-}
-
-function showGameOver() {
-  gameOverDiv.html("GAME OVER<br>Final Score: " + floor(score));
-  restartButton.show();
-}
-
-function restartGame() {
-  score = 0;
-  lives = 3;
-  speed = 10;
-  obstacles = [];
-  lane = 1;
-  player = new Player();
-  gameOver = false;
-  gameOverDiv.html("");
-  restartButton.hide();
-}
-
-class Player {
-  constructor() {
-    this.lane = 1;
-    this.x = 0;
-    this.y = 0;
-    this.z = 200;
-    this.vy = 0;
-    this.jumping = false;
-  }
-  update() {
-    this.lane = lane;
-    let targetX = (lane - 1) * 200;
-    this.x = lerp(this.x, targetX, 0.2);
-    this.y += this.vy;
-    this.vy -= 0.4;
-    if (this.y < 0) {
-      this.y = 0;
-      this.vy = 0;
-      this.jumping = false;
+    state = "gameover";
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("highScore_sectorGame", highScore);
     }
-  }
-  show() {
-    push();
-    translate(this.x, -50 - this.y, this.z);
-    fill(0, 200, 150);
-    box(50, 100, 50);
-    pop();
-  }
-}
-
-class Obstacle {
-  constructor(lane) {
-    this.lane = lane;
-    this.x = (lane - 1) * 200;
-    this.y = -30;
-    this.z = -6000;
-  }
-  update() {
-    this.z += speed;
-  }
-  show() {
-    push();
-    translate(this.x, this.y, this.z);
-    fill(200, 50, 50);
-    box(80, 60, 80);
-    pop();
   }
 }
