@@ -9,6 +9,13 @@
         background: #f4f4f4;
         text-align: center;
       }
+      * {
+  touch-action: manipulation;
+}
+canvas {
+  touch-action: none;  
+}
+
 
       #gameContainer {
         display: flex;
@@ -16,6 +23,8 @@
         align-items: center;
       }
     </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <script src="sketch.js"></script>
@@ -25,3 +34,4 @@
     <div id="gameContainer"></div>
   </body>
 </html>
+
