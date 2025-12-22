@@ -1,302 +1,402 @@
-let SIZE = 4;
-let board = [];
-let tileSize = 120;
-let spacing = 8;
-let img;
+let runner;
+let obstacles = [];
+let collectibles = [];
 
-let canvasSize;
-let emptyIndex;
-let moves = 0;
+let laneY = [];
+let platformThickness = 4;
 
-let movesP, titleP;
-let uiHeight = 0;
+let baseSpeed = 4;
+let speed = baseSpeed;
 
-let tiles = [];
-let animationSpeed = 0.5;
+let spawnTimer = 0;
+let spawnInterval = 36;
 
-let boardPadding = 20;  // <-- NEW PADDING
+let score = 0;
+let highScore = 0;
+let frameCounter = 0;
 
+let restartBtn;
+let gameState = "select"; // select | instructions | countdown | play | gameover
+let runnerColor;
 
-// ------------------------------------------------------------
-// TILE CLASS
-// ------------------------------------------------------------
-class Tile {
-  constructor(val, r, c) {
-    this.value = val;
-    this.targetR = r;
-    this.targetC = c;
+let firstRun = true;
+let countdown = 3;
+let countdownStartFrame = 0;
 
-    this.currentX = this.getScreenX(c);
-    this.currentY = this.getScreenY(r);
-  }
-
-  getScreenX(c) {
-    return boardPadding + c * (tileSize + spacing);
-  }
-
-  getScreenY(r) {
-    return boardPadding + r * (tileSize + spacing);
-  }
-
-  updatePosition(r, c) {
-    this.targetR = r;
-    this.targetC = c;
-  }
-
-  isMoving() {
-    return (
-      this.currentX !== this.getScreenX(this.targetC) ||
-      this.currentY !== this.getScreenY(this.targetR)
-    );
-  }
-
-  animate() {
-    let targetX = this.getScreenX(this.targetC);
-    let targetY = this.getScreenY(this.targetR);
-
-    let dx = targetX - this.currentX;
-    let dy = targetY - this.currentY;
-
-    let distRemaining = dist(this.currentX, this.currentY, targetX, targetY);
-    let step = min(animationSpeed * (tileSize + spacing), distRemaining);
-
-    if (distRemaining > 0) {
-      this.currentX += (dx / distRemaining) * step;
-      this.currentY += (dy / distRemaining) * step;
-    }
-
-    if (dist(this.currentX, this.currentY, targetX, targetY) < 1) {
-      this.currentX = targetX;
-      this.currentY = targetY;
-    }
-  }
-
-  draw() {
-    this.animate();
-
-    let val = this.value;
-
-    let sx = ((val - 1) % SIZE) * (img.width / SIZE);
-    let sy = floor((val - 1) / SIZE) * (img.height / SIZE);
-
-    image(
-      img,
-      this.currentX,
-      this.currentY,
-      tileSize,
-      tileSize,
-      sx,
-      sy,
-      img.width / SIZE,
-      img.height / SIZE
-    );
-
-    fill(0, 100);
-    rect(this.currentX, this.currentY, tileSize, tileSize);
-
-    fill(255);
-    textSize(tileSize / 3);
-    textAlign(CENTER, CENTER);
-    text(val, this.currentX + tileSize / 2, this.currentY + tileSize / 2);
-  }
-}
-
-
-// ------------------------------------------------------------
-// SETUP
-// ------------------------------------------------------------
-function preload() {
-  img = loadImage("image.jpg");
-}
+/* ---------------- SETUP ---------------- */
 
 function setup() {
-  // Create UI first
-  titleP = createP("15 Puzzle Game")
-    .parent("gameContainer")
-    .style("font-size", "26px")
-    .style("font-weight", "bold")
-    .style("margin", "10px")
-    .style("text-align", "center");
+  createCanvas(800, 400);
 
-  movesP = createP("Moves: 0")
-    .parent("gameContainer")
-    .style("font-size", "18px")
-    .style("margin", "5px")
-    .style("text-align", "center");
+  laneY[0] = 120;
+  laneY[1] = 280;
 
-  calculateUIHeight();
-  autoScale();
+  runner = {
+    x: 140,
+    lane: 0,
+    y: laneY[0],
+    size: 30
+  };
 
-  let cnv = createCanvas(canvasSize, canvasSize);
-  cnv.parent("gameContainer");
+  let stored = localStorage.getItem("laneRunnerHighScore");
+  highScore = stored ? int(stored) : 0;
 
-  initBoard();
-  scrambleBoard();
+  restartBtn = {
+    x: width / 2 - 70,
+    y: height / 2 + 40,
+    w: 140,
+    h: 40
+  };
 }
 
-
-// ------------------------------------------------------------
-// UI HEIGHT MEASUREMENT
-// ------------------------------------------------------------
-function calculateUIHeight() {
-  uiHeight = titleP.elt.offsetHeight + movesP.elt.offsetHeight;
-}
-
-
-// ------------------------------------------------------------
-// AUTO SCALE BASED ON MINIMUM SIDE
-// ------------------------------------------------------------
-function autoScale() {
-  let usableHeight = windowHeight - uiHeight - boardPadding * 2;
-  let usableWidth = windowWidth - boardPadding * 2;
-
-  let smallerSide = min(usableWidth, usableHeight);
-
-  tileSize = floor((smallerSide - (SIZE - 1) * spacing) / SIZE);
-
-  canvasSize =
-    boardPadding * 2 +
-    SIZE * tileSize +
-    (SIZE - 1) * spacing;
-}
-
-// ------------------------------------------------------------
-function windowResized() {
-  calculateUIHeight();
-  autoScale();
-  resizeCanvas(canvasSize, canvasSize);
-
-  for (let tile of tiles) {
-    let idx = board.indexOf(tile.value);
-    let r = floor(idx / SIZE);
-    let c = idx % SIZE;
-
-    tile.currentX = tile.getScreenX(c);
-    tile.currentY = tile.getScreenY(r);
-    tile.updatePosition(r, c);
-  }
-}
-
-
-// ------------------------------------------------------------
-// BOARD LOGIC
-// ------------------------------------------------------------
-function initBoard() {
-  board = [];
-  for (let i = 1; i <= SIZE * SIZE - 1; i++) board.push(i);
-  board.push(0);
-
-  emptyIndex = board.indexOf(0);
-  moves = 0;
-  movesP.html("Moves: 0");
-}
-
-function createTiles() {
-  tiles = [];
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      let idx = r * SIZE + c;
-      let val = board[idx];
-      if (val !== 0) tiles.push(new Tile(val, r, c));
-    }
-  }
-}
+/* ---------------- DRAW ---------------- */
 
 function draw() {
-  background(100, 150, 200);
-  drawBoard();
-}
+  background(18);
 
-function drawBoard() {
-  for (let t of tiles) t.draw();
-}
-
-function mousePressed() {
-  if (tiles.some(t => t.isMoving())) return;
-
-  let mx = mouseX - boardPadding;
-  let my = mouseY - boardPadding;
-
-  if (mx < 0 || my < 0 || mx > canvasSize || my > canvasSize) return;
-
-  let c = floor(mx / (tileSize + spacing));
-  let r = floor(my / (tileSize + spacing));
-
-  tryMove(r * SIZE + c);
-}
-
-function tryMove(idx) {
-  let r = floor(idx / SIZE);
-  let c = idx % SIZE;
-
-  let er = floor(emptyIndex / SIZE);
-  let ec = emptyIndex % SIZE;
-
-  if (abs(r - er) + abs(c - ec) === 1) {
-    let movingVal = board[idx];
-
-    [board[emptyIndex], board[idx]] = [board[idx], board[emptyIndex]];
-
-    let movingTile = tiles.find(t => t.value === movingVal);
-    if (movingTile) movingTile.updatePosition(er, ec);
-
-    emptyIndex = idx;
-
-    moves++;
-    movesP.html("Moves: " + moves);
+  if (gameState === "select") {
+    drawCharacterSelect();
+    return;
   }
+
+  if (gameState === "instructions") {
+    drawInstructions();
+    return;
+  }
+
+  if (gameState === "countdown") {
+    drawCountdown();
+    return;
+  }
+
+  drawPlatforms();
+
+  if (gameState === "play") {
+    increaseDifficulty();
+    spawnStuff();
+    updateObjects();
+    checkCollisions();
+  }
+
+  animateRunner();
+  drawObjects();
+  drawRunner();
+  drawUI();
 }
 
+/* ---------------- CHARACTER SELECT ---------------- */
 
-// ------------------------------------------------------------
-// SCRAMBLE
-// ------------------------------------------------------------
-function scrambleBoard() {
-  initBoard();
-  createTiles();
+function drawCharacterSelect() {
+  noStroke();
+  textAlign(CENTER, CENTER);
 
-  let lastEmptyIndex = -1;
+  fill(255);
+  textSize(32);
+  text("Choose your runner", width / 2, 80);
 
-  for (let i = 0; i < 50; i++) {
-    let er = floor(emptyIndex / SIZE);
-    let ec = emptyIndex % SIZE;
+  rectMode(CENTER);
 
-    let options = [];
+  fill(0, 200, 255);
+  rect(width / 2 - 80, height / 2, 50, 50, 8);
 
-    let dirs = [
-      [er - 1, ec],
-      [er + 1, ec],
-      [er, ec - 1],
-      [er, ec + 1],
-    ];
+  fill(255, 200, 0);
+  rect(width / 2 + 80, height / 2, 50, 50, 8);
 
-    for (let [nr, nc] of dirs) {
-      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
-        let idx = nr * SIZE + nc;
-        if (idx !== lastEmptyIndex) options.push(idx);
-      }
+  fill(180);
+  textSize(14);
+  text("Blue", width / 2 - 80, height / 2 + 45);
+  text("Yellow", width / 2 + 80, height / 2 + 45);
+
+  textAlign(LEFT, BASELINE);
+}
+
+/* ---------------- INSTRUCTIONS ---------------- */
+
+function drawInstructions() {
+  noStroke();
+  textAlign(CENTER, CENTER);
+
+  fill(255);
+  textSize(28);
+  text("How to Play", width / 2, 70);
+
+  textSize(16);
+  fill(200);
+  
+  text(
+    "• The square runs forward \n" +
+    "• Obstacles block one lane\n" +
+    "• Collect green orbs to earn points\n" +
+    "• Click, or press any key to flip lanes\n" +
+    "• Survive as long as you can",
+    width / 2,
+    height / 2
+  );
+  
+  textSize(14);
+  fill(150);
+  text("Click anywhere to continue", width / 2, height - 50);
+  
+  textAlign(LEFT, BASELINE);
+  fill(80, 255, 120);
+  ellipse(width / 2 + textWidth("• Collect green orbs to earn points\n")/2+28, height/2, 16);
+  fill(220)
+  rect(width / 2 + textWidth("• Obstacles block one lane\n")/2+24, height/2 - height/20, 7,16, 1);
+}
+
+/* ---------------- COUNTDOWN ---------------- */
+
+function drawCountdown() {
+  drawPlatforms();
+  animateRunner();
+  drawRunner();
+
+  textAlign(CENTER, CENTER);
+  fill(255);
+  textSize(64);
+  text(countdown, width / 2, height / 2);
+
+  if (frameCount - countdownStartFrame > 60) {
+    countdown--;
+    countdownStartFrame = frameCount;
+
+    if (countdown === 0) startGame();
+  }
+
+  textAlign(LEFT, BASELINE);
+}
+
+/* ---------------- PLATFORMS ---------------- */
+
+function drawPlatforms() {
+  stroke(220);
+  strokeWeight(platformThickness);
+  line(0, laneY[0] + 22, width, laneY[0] + 22);
+  line(0, laneY[1] + 22, width, laneY[1] + 22);
+}
+
+/* ---------------- RUNNER ---------------- */
+
+function animateRunner() {
+  let targetY = laneY[runner.lane];
+  runner.y = lerp(runner.y, targetY, 0.75);
+}
+
+function drawRunner() {
+  noStroke();
+  fill(runnerColor);
+  rectMode(CENTER);
+  rect(runner.x, runner.y, runner.size, runner.size, 6);
+}
+
+/* ---------------- DIFFICULTY ---------------- */
+
+function increaseDifficulty() {
+  print(speed)
+  frameCounter++;
+  speed = baseSpeed + frameCounter * 0.002;
+  spawnInterval = max(28, 36 - frameCounter * 0.006);
+}
+
+/* ---------------- SPAWNING ---------------- */
+
+function spawnStuff() {
+  spawnTimer++;
+
+  if (spawnTimer > spawnInterval) {
+    spawnTimer = 0;
+
+    if (random() < 0.22) return;
+
+    let obstacleLane = random([0, 1]);
+    let freeLane = obstacleLane === 0 ? 1 : 0;
+
+    if (random() < 0.8) {
+      obstacles.push({
+        x: width + 40,
+        lane: obstacleLane,
+        w: 14,
+        h: 40
+      });
     }
 
-    if (options.length === 0) break;
+    if (random() < 0.6) {
+      collectibles.push({
+        x: width + 40,
+        lane: freeLane,
+        size: 18
+      });
+    }
+  }
+}
 
-    let target = random(options);
+/* ---------------- OBJECTS ---------------- */
 
-    [board[emptyIndex], board[target]] = [board[target], board[emptyIndex]];
+function updateObjects() {
+  for (let o of obstacles) o.x -= speed;
+  for (let c of collectibles) c.x -= speed;
 
-    lastEmptyIndex = emptyIndex;
-    emptyIndex = target;
+  obstacles = obstacles.filter(o => o.x > -60);
+  collectibles = collectibles.filter(c => c.x > -60);
+}
+
+function drawObjects() {
+  noStroke();
+  rectMode(CENTER);
+
+  fill(220);
+  for (let o of obstacles) {
+    let baseY = laneY[o.lane] + 22;
+    rect(o.x, baseY - o.h / 2, o.w, o.h, 2);
   }
 
-  for (let tile of tiles) {
-    let idx = board.indexOf(tile.value);
-    let r = floor(idx / SIZE);
-    let c = idx % SIZE;
+  fill(80, 255, 120);
+  for (let c of collectibles) {
+    ellipse(c.x, laneY[c.lane], c.size);
+  }
+}
 
-    tile.updatePosition(r, c);
-    tile.currentX = tile.getScreenX(c);
-    tile.currentY = tile.getScreenY(r);
+/* ---------------- COLLISIONS ---------------- */
+
+function checkCollisions() {
+  for (let o of obstacles) {
+    if (
+      o.lane === runner.lane &&
+      abs(o.x - runner.x) < (o.w + runner.size) / 2
+    ) {
+      gameState = "gameover";
+      saveHighScore();
+    }
   }
 
-  moves = 0;
-  movesP.html("Moves: 0");
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    let c = collectibles[i];
+    if (
+      c.lane === runner.lane &&
+      abs(c.x - runner.x) < (c.size + runner.size) / 2
+    ) {
+      score++;
+      collectibles.splice(i, 1);
+    }
+  }
+}
+
+/* ---------------- INPUT ---------------- */
+
+function mousePressed() {
+  if (gameState === "select") {
+    if (dist(mouseX, mouseY, width / 2 - 80, height / 2) < 30) {
+      runnerColor = color(0, 200, 255);
+      afterSelect();
+    }
+
+    if (dist(mouseX, mouseY, width / 2 + 80, height / 2) < 30) {
+      runnerColor = color(255, 200, 0);
+      afterSelect();
+    }
+    return;
+  }
+
+  if (gameState === "instructions") {
+    gameState = "countdown";
+    countdown = 3;
+    countdownStartFrame = frameCount;
+    return;
+  }
+
+  if (gameState === "gameover" && overRestart()) {
+    resetGame();
+    startGame();
+    return;
+  }
+
+  if (gameState === "play") flipRunner();
+}
+
+function keyPressed() {
+  if (gameState === "play") flipRunner();
+}
+
+function flipRunner() {
+  runner.lane = runner.lane === 0 ? 1 : 0;
+}
+
+/* ---------------- UI ---------------- */
+
+function drawUI() {
+  noStroke();
+  fill(255);
+  textSize(18);
+  textAlign(LEFT, BASELINE);
+  text("Score: " + score, 20, 30);
+  text("High: " + highScore, 20, 55);
+
+  if (gameState === "gameover") {
+    textAlign(CENTER, CENTER);
+    textSize(36);
+    text("GAME OVER", width / 2, height / 2 - 30);
+    drawRestartButton();
+    textAlign(LEFT, BASELINE);
+  }
+}
+
+function drawRestartButton() {
+  rectMode(CORNER);
+  fill(40);
+  rect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h, 8);
+
+  fill(255);
+  textSize(18);
+  textAlign(CENTER, CENTER);
+  text(
+    "RESTART",
+    restartBtn.x + restartBtn.w / 2,
+    restartBtn.y + restartBtn.h / 2
+  );
+}
+
+function overRestart() {
+  return (
+    mouseX > restartBtn.x &&
+    mouseX < restartBtn.x + restartBtn.w &&
+    mouseY > restartBtn.y &&
+    mouseY < restartBtn.y + restartBtn.h
+  );
+}
+
+/* ---------------- FLOW ---------------- */
+
+function afterSelect() {
+  resetGame();
+
+  if (firstRun) {
+    gameState = "instructions";
+    firstRun = false;
+  } else {
+    startGame();
+  }
+}
+
+function startGame() {
+  gameState = "play";
+}
+
+function resetGame() {
+  obstacles = [];
+  collectibles = [];
+  score = 0;
+  frameCounter = 0;
+  speed = baseSpeed;
+  spawnTimer = 0;
+  runner.lane = 0;
+  runner.y = laneY[0];
+}
+
+/* ---------------- HIGH SCORE ---------------- */
+
+function saveHighScore() {
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("laneRunnerHighScore", highScore);
+  }
 }
