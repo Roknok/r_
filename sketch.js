@@ -196,6 +196,10 @@ function drawInstructions() {
   text("Click anywhere to continue", width / 2, height - 50);
 
   textAlign(LEFT, BASELINE);
+  fill(80, 255, 120); 
+  ellipse(width / 2 + textWidth("• Collect green orbs to earn points\n")/2+28, height/2, 16); 
+  fill(220) 
+  rect(width / 2 + textWidth("• Obstacles block one lane\n")/2+24, height/2 - height/20, 7,16, 1); 
 }
 
 /* ---------------- COUNTDOWN ---------------- */
@@ -318,7 +322,9 @@ function checkCollisions() {
 /* ---------------- INPUT ---------------- */
 
 function mousePressed() {
-  if (getAudioContext().state !== "running") getAudioContext().resume();
+  if (getAudioContext().state !== "running") {
+    getAudioContext().resume();
+  }
 
   if (gameState === "play" || gameState === "gameover") {
     if (overBtn(pauseBtn)) {
@@ -362,8 +368,68 @@ function mousePressed() {
     return;
   }
 
-  if (gameState === "play" && !paused) flipRunner();
+  // ✅ DESKTOP FLIP
+  if (gameState === "play" && !paused) {
+    flipRunner();
+  }
 }
+
+function touchStarted() {
+  if (getAudioContext().state !== "running") {
+    getAudioContext().resume();
+  }
+
+  if (gameState === "play" || gameState === "gameover") {
+    if (overBtn(pauseBtn)) {
+      paused = !paused;
+      if (soundEnabled) clickSound.play();
+      return false;
+    }
+    if (overBtn(soundBtn)) {
+      soundEnabled = !soundEnabled;
+      return false;
+    }
+  }
+
+  if (gameState === "select") {
+    if (dist(mouseX, mouseY, width / 2 - 80, height / 2) < 30) {
+      runnerColor = color(0, 200, 255);
+      afterSelect();
+      if (soundEnabled) clickSound.play();
+    }
+    if (dist(mouseX, mouseY, width / 2 + 80, height / 2) < 30) {
+      runnerColor = color(255, 200, 0);
+      afterSelect();
+      if (soundEnabled) clickSound.play();
+    }
+    return false;
+  }
+
+  if (gameState === "instructions") {
+    gameState = "countdown";
+    countdown = 3;
+    countdownStartFrame = frameCount;
+    if (soundEnabled) clickSound.play();
+    return false;
+  }
+
+  if (gameState === "gameover" && overRestart()) {
+    resetGame();
+    startGame();
+    paused = false;
+    if (soundEnabled) clickSound.play();
+    return false;
+  }
+
+  // ✅ MOBILE FLIP (no delay)
+  if (gameState === "play" && !paused) {
+    flipRunner();
+  }
+
+  return false; // 🚫 prevents delayed mousePressed
+}
+
+
 
 function keyPressed() {
   if (gameState === "play" && !paused) flipRunner();
