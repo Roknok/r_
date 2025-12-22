@@ -194,7 +194,7 @@ function drawRunner() {
 function increaseDifficulty() {
   print(speed)
   frameCounter++;
-  speed = baseSpeed + frameCounter * 0.002;
+  speed = baseSpeed + frameCounter * 0.001;
   spawnInterval = max(28, 36 - frameCounter * 0.006);
 }
 
