@@ -462,7 +462,7 @@ function checkCollisions() {
   for (let i = collectibles.length - 1; i >= 0; i--) {
     let c = collectibles[i];
     if (c.lane === runner.lane && abs(c.x - runner.x) < (c.size + runner.size) / 2) {
-      score+=10;
+      score+=1;
       if (soundEnabled) collectSound.play();
       collectibles.splice(i, 1);
     }
