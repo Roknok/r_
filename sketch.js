@@ -111,26 +111,26 @@ allMusic = [music1, music2, music3, music4, music5];
   let stored = localStorage.getItem("laneRunnerHighScore");
   highScore = stored ? int(stored) : 0;
 
-  restartBtn = {
-    x: width / 2 - 70,
-    y: height / 2 + 40,
-    w: 140,
-    h: 40
-  };
+restartBtn = {
+  w: 140 * 1.5, // 210
+  h: 40 * 1.5,  // 60
+  x: width / 2 - (140 * 1.5) / 2, // center horizontally
+  y: height / 2 + 40 // keep same vertical offset
+};
 
-  pauseBtn = {
-    x: width - 90,
-    y: 15,
-    w: 30,
-    h: 30
-  };
+pauseBtn = {
+  w: 30 * 1.5, // 45
+  h: 30 * 1.5, // 45
+  x: width - 100 - (45 - 30)/2, // adjust so it stays visually near top-right
+  y: 15 - (45 - 30)/2
+};
 
-  soundBtn = {
-    x: width - 45,
-    y: 15,
-    w: 30,
-    h: 30
-  };
+soundBtn = {
+  w: 30 * 1.5, // 45
+  h: 30 * 1.5, // 45
+  x: width - 45 - (45 - 30)/2, // same adjustment
+  y: 15 - (45 - 30)/2
+};
 
   flipSound.playMode('restart');
 collectSound.playMode('restart');
@@ -262,20 +262,20 @@ function drawTopButtons() {
 
   rectMode(CORNER);
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(20);
   noStroke();
 
   // Pause button
   fill(40);
   rect(pauseBtn.x, pauseBtn.y, pauseBtn.w, pauseBtn.h, 6);
   fill(255);
-  text(paused ? "▶" : "⏸", pauseBtn.x + 15, pauseBtn.y + 15);
+  text(paused ? "▶" : "⏸", pauseBtn.x + pauseBtn.w/2, pauseBtn.y + pauseBtn.h/2);
 
   // Sound button
   fill(40);
   rect(soundBtn.x, soundBtn.y, soundBtn.w, soundBtn.h, 6);
   fill(255);
-  text(soundEnabled ? "🔊" : "🔇", soundBtn.x + 15, soundBtn.y + 15);
+  text(soundEnabled ? "🔊" : "🔇", soundBtn.x + soundBtn.w/2, soundBtn.y + soundBtn.h/2);
 
   textAlign(LEFT, BASELINE);
 }
@@ -324,7 +324,7 @@ image(yellow, x, y, w, h);
 drawingContext.restore();
 
   fill(180);
-  textSize(14);
+  textSize(16);
   text("Blue", width / 2 - 80, height / 2 + 45);
   text("Yellow", width / 2 + 80, height / 2 + 45);
 
@@ -338,10 +338,10 @@ function drawInstructions() {
   textAlign(CENTER, CENTER);
 
   fill(255);
-  textSize(28);
+  textSize(30);
   text("How to Play", width / 2, 70);
 
-  textSize(16);
+  textSize(20);
   fill(200);
   text(
     "• The square runs forward\n" +
@@ -354,14 +354,14 @@ function drawInstructions() {
   );
 
   fill(150);
-  textSize(14);
+  textSize(16);
   text("Click anywhere to continue", width / 2, height - 50);
 
   textAlign(LEFT, BASELINE);
   fill(80, 255, 120); 
-  ellipse(width / 2 + textWidth("• Collect green orbs to earn points\n")/2+28, height/2, 16); 
+  ellipse(width / 2 + textWidth("• Collect green orbs to earn points\n")/2+40, height/2, 16); 
   fill(220) 
-  rect(width / 2 + textWidth("• Obstacles block one lane\n")/2+24, height/2 - height/20, 7,16, 1); 
+  rect(width / 2 + textWidth("• Obstacles block one lane\n")/2+32, height/2 - height/20, 7,16, 1); 
 }
 
 /* ---------------- COUNTDOWN ---------------- */
@@ -630,13 +630,13 @@ function flipRunner() {
 
 function drawUI() {
   fill(255);
-  textSize(18);
+  textSize(20);
   text("Score: " + score, 20, 30);
   text("High: " + highScore, 20, 55);
 
   if (gameState === "gameover") {
     textAlign(CENTER, CENTER);
-    textSize(36);
+    textSize(40);
     text("GAME OVER", width / 2, height / 2 - 30);
     drawRestartButton();
     textAlign(LEFT, BASELINE);
@@ -649,7 +649,7 @@ function drawRestartButton() {
   rect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h, 8);
   fill(255);
   textAlign(CENTER, CENTER);
-  textSize(20)
+  textSize(25)
   text("RESTART", restartBtn.x + restartBtn.w / 2, restartBtn.y + restartBtn.h / 2);
 }
 
