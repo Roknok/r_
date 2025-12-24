@@ -20,3 +20,6 @@ button{
   background-color: rgb(172, 255, 172);
   border: 1px solid black;
 }
+canvas.rot {
+  transform: rotate(90deg);
+}

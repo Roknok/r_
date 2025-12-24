@@ -51,6 +51,10 @@ let currentMusic = null;
 let musicLevel = -1;   // -1 = nothing yet
 let targetVolume = 0.6;
 let fadeSpeed = 0.01;
+
+let rotate = false
+let mx,my
+
 /* ---------------- PRELOAD ---------------- */
 
 function preload() {
@@ -75,7 +79,11 @@ function preload() {
 /* ---------------- SETUP ---------------- */
 
 function setup() {
-  createCanvas(800, 400);
+  createCanvas(1000, 500);
+  if (windowWidth<windowHeight){
+    document.querySelector('canvas').classList.add("rot")
+    rotate = true
+  }
   pixelDensity(2);
 
  userStartAudio();
@@ -90,14 +98,14 @@ allMusic = [music1, music2, music3, music4, music5];
     if (musicLevel === 0) startMusic(music1);
   });
 
-  laneY[0] = 120;
-  laneY[1] = 280;
+  laneY[0] = height/3;
+  laneY[1] = height/3 * 2;
 
   runner = {
-    x: 140,
+    x: 175,
     lane: 0,
     y: laneY[0],
-    size: 30
+    size: 35
   };
 
   let stored = localStorage.getItem("laneRunnerHighScore");
@@ -148,6 +156,14 @@ function startMusic(track) {
 
 
 function draw() {
+
+  mx = mouseX
+  my = mouseY
+  if (rotate){
+mx = mouseY;
+my = height - mouseX;
+  }
+
   background(0);
   image(background_i,0-backpos,0,width,height)
   image(background_i,0-backpos+width,0,width,height)
@@ -174,12 +190,19 @@ function draw() {
   }
 
   // -------- FADE IN MUSIC --------
-  if (currentMusic && currentMusic.isPlaying()) {
+if (currentMusic && currentMusic.isPlaying()) {
+  if (soundEnabled) {
+    // fade in toward targetVolume
     let v = currentMusic.getVolume();
     if (v < targetVolume) {
       currentMusic.setVolume(min(v + fadeSpeed, targetVolume));
     }
+  } else {
+    // fade out instantly (or gradually)
+    currentMusic.setVolume(0);
   }
+}
+
 
 
 
@@ -484,18 +507,24 @@ function mousePressed() {
     }
     if (overBtn(soundBtn)) {
       soundEnabled = !soundEnabled;
+      
+  // mute/unmute music
+  if (currentMusic && currentMusic.isPlaying()) {
+    currentMusic.setVolume(soundEnabled ? targetVolume : 0);
+  }
+
       return;
     }
   }
 
   if (gameState === "select") {
-    if (dist(mouseX, mouseY, width / 2 - 80, height / 2) < 30) {
+    if (dist(mx, my, width / 2 - 80, height / 2) < 30) {
       runnerColor = color(0, 200, 255);
       runcol = "b"
       afterSelect();
       if (soundEnabled) clickSound.play();
     }
-    if (dist(mouseX, mouseY, width / 2 + 80, height / 2) < 30) {
+    if (dist(mx, my, width / 2 + 80, height / 2) < 30) {
       runnerColor = color(255, 200, 0);
       runcol = "y"
       afterSelect();
@@ -544,12 +573,12 @@ function touchStarted() {
   }
 
   if (gameState === "select") {
-    if (dist(mouseX, mouseY, width / 2 - 80, height / 2) < 30) {
+    if (dist(mx, my, width / 2 - 80, height / 2) < 30) {
       runnerColor = color(0, 200, 255);
       afterSelect();
       if (soundEnabled) clickSound.play();
     }
-    if (dist(mouseX, mouseY, width / 2 + 80, height / 2) < 30) {
+    if (dist(mx, my, width / 2 + 80, height / 2) < 30) {
       runnerColor = color(255, 200, 0);
       afterSelect();
       if (soundEnabled) clickSound.play();
@@ -624,7 +653,7 @@ function overRestart() {
 }
 
 function overBtn(b) {
-  return mouseX > b.x && mouseX < b.x + b.w && mouseY > b.y && mouseY < b.y + b.h;
+  return mx > b.x && mx < b.x + b.w && my > b.y && my < b.y + b.h;
 }
 
 /* ---------------- FLOW ---------------- */
