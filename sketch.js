@@ -58,11 +58,11 @@ let mx,my
 /* ---------------- PRELOAD ---------------- */
 
 function preload() {
-  music1 = loadSound("music.wav");
-  music2 = loadSound("music2.wav");
-  music3 = loadSound("music3.wav");
-  music4 = loadSound("music4.wav");
-  music5 = loadSound("music5.wav");
+  music1 = loadSound("music.mp3");
+  music2 = loadSound("music2.mp3");
+  music3 = loadSound("music3.mp3");
+  music4 = loadSound("music4.mp3");
+  music5 = loadSound("music5.mp3");
   
 
   flipSound = loadSound("woop.mp3");
