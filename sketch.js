@@ -131,6 +131,11 @@ allMusic = [music1, music2, music3, music4, music5];
     w: 30,
     h: 30
   };
+
+  flipSound.playMode('restart');
+collectSound.playMode('restart');
+clickSound.playMode('restart');
+
 }
 
 /* ---------------- DRAW ---------------- */
