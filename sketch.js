@@ -18,6 +18,7 @@ let frameCounter = 0;
 let restartBtn;
 let gameState = "select"; // select | instructions | countdown | play | gameover
 let runnerColor;
+let runcol;
 
 let firstRun = true;
 let countdown = 3;
@@ -33,19 +34,61 @@ let soundEnabled = true;
 let pauseBtn;
 let soundBtn;
 
+let blue
+let yellow
+let background_i
+let background_i2
+let background_i3
+
+let backpos = 0
+let backpos2 = 0
+let backpos3 = 0
+
+let music1, music2, music3, music4, music5;
+let allMusic = [];
+
+let currentMusic = null;
+let musicLevel = -1;   // -1 = nothing yet
+let targetVolume = 0.6;
+let fadeSpeed = 0.01;
 /* ---------------- PRELOAD ---------------- */
 
 function preload() {
+  music1 = loadSound("music.wav");
+  music2 = loadSound("music2.wav");
+  music3 = loadSound("music3.wav");
+  music4 = loadSound("music4.wav");
+  music5 = loadSound("music5.wav");
+  
+
   flipSound = loadSound("woop.mp3");
   collectSound = loadSound("coin.mp3");
   clickSound = loadSound("snap.mp3");
+  blue = loadImage("blue_sq.png")
+  yellow = loadImage("yellow_sq.png")
+  background_i = loadImage("back.png")
+  background_i2 = loadImage("back2.png")
+  background_i3 = loadImage("back3.png")
+
 }
 
 /* ---------------- SETUP ---------------- */
 
 function setup() {
   createCanvas(800, 400);
-  pixelDensity(1);
+  pixelDensity(2);
+
+ userStartAudio();
+allMusic = [music1, music2, music3, music4, music5];
+
+  // alternating logic
+  music1.onended(() => {
+    if (musicLevel === 0) startMusic(music2);
+  });
+
+  music2.onended(() => {
+    if (musicLevel === 0) startMusic(music1);
+  });
 
   laneY[0] = 120;
   laneY[1] = 280;
@@ -83,9 +126,75 @@ function setup() {
 }
 
 /* ---------------- DRAW ---------------- */
+function stopAllMusic() {
+  for (let m of allMusic) {
+    if (m.isPlaying()) {
+      m.stop();
+    }
+  }
+}
+
+function startMusic(track) {
+  stopAllMusic();
+
+  currentMusic = track;
+  currentMusic.setVolume(0);
+  currentMusic.play();
+
+  if (musicLevel !== 0) {
+    currentMusic.loop(); // tier music loops
+  }
+}
+
 
 function draw() {
-  background(18);
+  background(0);
+  image(background_i,0-backpos,0,width,height)
+  image(background_i,0-backpos+width,0,width,height)
+  image(background_i2,0-backpos2,0,width,height)
+  image(background_i2,0-backpos2+width,0,width,height)
+  image(background_i3,0-backpos3,0,width,height)
+  image(background_i3,0-backpos3+width,0,width,height)
+
+
+
+     let newLevel =
+    score < 100 ? 0 :
+    score < 200 ? 1 :
+    score < 300 ? 2 :
+    3;
+
+  if (newLevel !== musicLevel) {
+    musicLevel = newLevel;
+
+    if (musicLevel === 0) startMusic(music1);
+    else if (musicLevel === 1) startMusic(music3);
+    else if (musicLevel === 2) startMusic(music4);
+    else if (musicLevel === 3) startMusic(music5);
+  }
+
+  // -------- FADE IN MUSIC --------
+  if (currentMusic && currentMusic.isPlaying()) {
+    let v = currentMusic.getVolume();
+    if (v < targetVolume) {
+      currentMusic.setVolume(min(v + fadeSpeed, targetVolume));
+    }
+  }
+
+
+
+  backpos+=speed/4
+  if( backpos>width){
+      backpos=0
+  }
+    backpos2+=speed/3.3
+  if( backpos2>width){
+      backpos2=0
+  }
+    backpos3+=speed/2.8
+  if( backpos3>width){
+      backpos3=0
+  }
 
   if (gameState === "select") {
     drawCharacterSelect();
@@ -157,9 +266,34 @@ function drawCharacterSelect() {
 
   fill(0, 200, 255);
   rect(width / 2 - 80, height / 2, 50, 50, 8);
+  let x = width / 2 - 80-25;
+let y = height / 2- 25;
+let w = 50;
+let h = 50;
+let r = 8;
+
+drawingContext.save();
+drawingContext.beginPath();
+drawingContext.roundRect(x, y, w, h, r);
+drawingContext.clip();
+image(blue, x, y, w, h);
+drawingContext.restore();
+
 
   fill(255, 200, 0);
   rect(width / 2 + 80, height / 2, 50, 50, 8);
+     x = width / 2 + 80-25;
+ y = height / 2- 25;
+ w = 50;
+ h = 50;
+ r = 8;
+
+drawingContext.save();
+drawingContext.beginPath();
+drawingContext.roundRect(x, y, w, h, r);
+drawingContext.clip();
+image(yellow, x, y, w, h);
+drawingContext.restore();
 
   fill(180);
   textSize(14);
@@ -244,6 +378,22 @@ function drawRunner() {
   fill(runnerColor);
   rectMode(CENTER);
   rect(runner.x, runner.y, runner.size, runner.size, 6);
+  let x = runner.x - runner.size / 2;
+let y = runner.y - runner.size / 2;
+let s = runner.size;
+let r = 6;
+
+drawingContext.save();
+drawingContext.beginPath();
+drawingContext.roundRect(x, y, s, s, r);
+drawingContext.clip();
+if (runcol =="y"){
+image(yellow, x, y, s, s);
+}else{
+image(blue, x, y, s, s);
+
+}
+drawingContext.restore();
 }
 
 /* ---------------- DIFFICULTY ---------------- */
@@ -312,7 +462,7 @@ function checkCollisions() {
   for (let i = collectibles.length - 1; i >= 0; i--) {
     let c = collectibles[i];
     if (c.lane === runner.lane && abs(c.x - runner.x) < (c.size + runner.size) / 2) {
-      score++;
+      score+=10;
       if (soundEnabled) collectSound.play();
       collectibles.splice(i, 1);
     }
@@ -341,11 +491,13 @@ function mousePressed() {
   if (gameState === "select") {
     if (dist(mouseX, mouseY, width / 2 - 80, height / 2) < 30) {
       runnerColor = color(0, 200, 255);
+      runcol = "b"
       afterSelect();
       if (soundEnabled) clickSound.play();
     }
     if (dist(mouseX, mouseY, width / 2 + 80, height / 2) < 30) {
       runnerColor = color(255, 200, 0);
+      runcol = "y"
       afterSelect();
       if (soundEnabled) clickSound.play();
     }
