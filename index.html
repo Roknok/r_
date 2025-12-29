@@ -1,15 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/addons/p5.sound.min.js"></script>
-<script defer src="sketch.js"></script>
-   <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
-    <title>Square runner</title>
-  </head>
-  <body>
-    <main>
-    </main>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>Let’s Play a Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+
+    .box {
+      max-width: 520px;
+      padding: 30px;
+      background: #1e1e1e;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    button {
+      cursor: pointer;
+      background: #4caf50;
+      color: black;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    a {
+      color: #4cafff;
+      font-size: 20px;
+    }
+
+    .annoying {
+      margin-top: 15px;
+      font-style: italic;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box" id="app">
+  <h2>Let’s play a little game first 😌</h2>
+
+  <p>
+    I’m thinking of a number between <strong>1 and 100</strong>.<br>
+    Go on… impress me.
+  </p>
+
+  <input type="number" id="guessInput" min="1" max="100">
+  <br>
+  <button id="guessBtn">Take a guess</button>
+
+  <p id="message"></p>
+  <p id="annoyingText" class="annoying" style="display:none;">
+    What if I make you wait 1 minute between each guess?  
+    Patience is attractive 😉
+  </p>
+</div>
+
+<script>
+  let secretNumber = null; // <-- chosen AFTER first guess
+  let canGuess = true;
+  let firstGuessDone = false;
+  let lastHint = "";
+
+  const guessInput = document.getElementById("guessInput");
+  const guessBtn = document.getElementById("guessBtn");
+  const message = document.getElementById("message");
+  const annoyingText = document.getElementById("annoyingText");
+  const app = document.getElementById("app");
+
+  guessBtn.addEventListener("click", () => {
+    if (!canGuess) return;
+
+    const guess = Number(guessInput.value);
+    if (!guess) return;
+
+    if (!firstGuessDone) {
+      annoyingText.style.display = "block";
+      firstGuessDone = true;
+
+      // Pick the secret number ONLY now, and guarantee it's wrong
+      do {
+        secretNumber = Math.floor(Math.random() * 100) + 1;
+      } while (secretNumber === guess);
+    }
+
+    if (guess > secretNumber) {
+      lastHint = "Too high… maybe guess a little lower 😏";
+      message.textContent = lastHint;
+      startCooldown();
+    } else if (guess < secretNumber) {
+      lastHint = "Too low. Aim a bit higher for me 😉";
+      message.textContent = lastHint;
+      startCooldown();
+    } else {
+      showCaesarSection();
+    }
+  });
+
+  function startCooldown() {
+    canGuess = false;
+    guessBtn.disabled = true;
+
+    let timeLeft = 60;
+
+    const interval = setInterval(() => {
+      message.textContent = `${lastHint} (wait ${timeLeft}s)`;
+      timeLeft--;
+
+      if (timeLeft < 0) {
+        clearInterval(interval);
+        canGuess = true;
+        guessBtn.disabled = false;
+        message.textContent = lastHint + " You can try again now.";
+      }
+    }, 1000);
+  }
+
+  function showCaesarSection() {
+    app.innerHTML = `
+      <h2>Correct 😌</h2>
+
+      <h1><strong>Alright… next challenge.</strong></h1>
+
+      <p>
+        Do you know what a <em>Caesar cipher</em> is?
+      </p>
+
+      <p>
+        A Caesar cipher is a simple way of hiding a message by moving each
+        letter forward or backward in the alphabet by a fixed number.
+      </p>
+
+      <p>
+        Example:<br>
+        <code>raunak</code> moved forward by 1 becomes <code>sbvobl</code>
+      </p>
+
+      <p>
+        Your turn:<br>
+        Take the instagram bio and move it forward by 1<br>
+        Move each letter <strong>forward by 1</strong>
+      </p>
+
+      <input type="text" id="cipherInput">
+      <br>
+      <button onclick="checkCipher()">Go</button>
+
+      <p id="cipherMsg"></p>
+    `;
+  }
+
+  function checkCipher() {
+    const input = document.getElementById("cipherInput").value.toUpperCase();
+    const cipherMsg = document.getElementById("cipherMsg");
+
+    const correctAnswer = "DUCK"; // CTBJ + 1
+
+    if (input === correctAnswer) {
+      app.innerHTML = `
+        <h2>Very nice 😌</h2>
+        <p>
+          You did it!<br>
+        </p>
+        <a href="http://bit.ly/48ZAqVL" target="_blank">http://bit.ly/48ZAqVL</a>
+      `;
+    } else {
+      cipherMsg.textContent = "Mmm… not quite. Try again.";
+    }
+  }
+</script>
+
+</body>
 </html>
