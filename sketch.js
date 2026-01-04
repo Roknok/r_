@@ -20,7 +20,7 @@ let state = -1;
 let lines
 function preload() {
   // coords.txt must be in the same folder or /data
-  lines = loadStrings("coords3.txt");
+  lines = loadStrings("coords5.txt");
 }
 
 
@@ -94,7 +94,7 @@ function setup() {
   fill(255);
   textAlign(CENTER);
   textSize(64);
-  text("Draw Something!", width/2, height/2);
+  text("Click!", width/2, height/2);
 }
 
 function epicycles(x, y, rotation, fourier) {
