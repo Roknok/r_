@@ -1,15 +1,224 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+<head>
+<title>Straight line Drawer</title>
+<style>
+  body { 
+    font-family: 'Segoe UI', sans-serif; 
+    background: #0b0b0b; 
+    color: #eee; 
+    text-align: center; 
+    margin: 0; padding: 20px;
+  } 
+  
+  canvas { 
+    background: #000; 
+    margin-top: 15px; 
+    border: 1px solid #333; 
+    box-shadow: 0 0 20px rgba(255,255,255,0.05);
+  }
 
-  </head>
-  <body>
-    <script src="codingtrain.js"></script>
-    <script src="fourier.js"></script>
-    <script src="sketch.js"></script>
-  </body>
+  .controls {
+    background: #1a1a1a;
+    display: inline-block;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #333;
+  }
+
+  button {
+    background: #fff; color: #000; border: none;
+    padding: 8px 16px; cursor: pointer; font-weight: bold;
+    border-radius: 4px;
+  }
+  button:hover { background: #ccc; }
+  
+  input[type="range"] { accent-color: white; vertical-align: middle; }
+  
+  #status { margin-top:10px; font-size: 0.9em; color: #aaa; min-height: 1.2em; }
+</style>
+</head>
+
+<body>
+
+<h2>Straight line Drawer</h2>
+
+<div class="controls">
+  <input type="file" id="imgInput" accept="image/*"><br><br>
+  
+  Resolution: <input type="range" id="res" min="50" max="300" value="130">
+  <span id="resLabel">130</span> px<br><br>
+  
+  <button id="startBtn">Process & Draw</button>
+</div>
+
+<div id="status">Upload an image to start</div>
+
+<canvas id="canvas" width="600" height="600"></canvas>
+
+<script>
+const fileInput = document.getElementById("imgInput");
+const resSlider = document.getElementById("res");
+const resLabel = document.getElementById("resLabel");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusDiv = document.getElementById("status");
+
+let img = new Image();
+let isDrawing = false;
+let animationId;
+
+resSlider.oninput = () => resLabel.textContent = resSlider.value;
+
+fileInput.onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = event => {
+    img.onload = () => {
+      statusDiv.textContent = "Image loaded. Click 'Process & Draw'.";
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+document.getElementById("startBtn").onclick = () => {
+  if (!img.src) return alert("Upload an image first!");
+  if (isDrawing) {
+    isDrawing = false;
+    cancelAnimationFrame(animationId);
+  }
+  
+  statusDiv.textContent = "Computing path...";
+  setTimeout(() => generateAndDraw(), 50);
+};
+
+function generateAndDraw() {
+  const targetW = 600;
+  const targetH = 600;
+
+  const aspect = img.width / img.height;
+  let w = targetW, h = targetH;
+  if (aspect > 1) h = targetW / aspect;
+  else w = targetH * aspect;
+
+  const off = document.createElement("canvas");
+  const res = parseInt(resSlider.value);
+  off.width = res;
+  off.height = Math.round(res / aspect);
+  const octx = off.getContext("2d");
+
+  octx.drawImage(img, 0, 0, off.width, off.height);
+  const data = octx.getImageData(0, 0, off.width, off.height).data;
+
+  let pixels = [];
+  for (let y = 0; y < off.height; y++) {
+    for (let x = 0; x < off.width; x++) {
+      const i = (y * off.width + x) * 4;
+      const gray = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+      if (gray > 10) { 
+        pixels.push({ x, y, gray });
+      }
+    }
+  }
+
+  pixels.sort((a, b) => a.gray - b.gray);
+
+  const finalPath = [];
+  const chunkSize = 150; 
+  
+  for (let i = 0; i < pixels.length; i += chunkSize) {
+    let chunk = pixels.slice(i, i + chunkSize);
+    let currentPoint = finalPath.length > 0 ? finalPath[finalPath.length-1] : {x:0, y:0};
+    
+    while (chunk.length > 0) {
+      let nearestIdx = -1;
+      let minDist = Infinity;
+      
+      for (let j = 0; j < chunk.length; j++) {
+        const dx = chunk[j].x - currentPoint.x;
+        const dy = chunk[j].y - currentPoint.y;
+        const dSq = dx*dx + dy*dy;
+        if (dSq < minDist) {
+          minDist = dSq;
+          nearestIdx = j;
+        }
+      }
+      
+      currentPoint = chunk[nearestIdx];
+      finalPath.push(currentPoint);
+      chunk.splice(nearestIdx, 1); 
+    }
+  }
+
+  ctx.clearRect(0, 0, targetW, targetH);
+  ctx.lineCap = "round";
+  
+  const scaleX = w / off.width;
+  const scaleY = h / off.height;
+  const offsetX = (targetW - w) / 2;
+  const offsetY = (targetH - h) / 2;
+
+  let step = 0;
+  isDrawing = true;
+  statusDiv.textContent = "Drawing...";
+
+  // --- DYNAMIC THICKNESS SCALING ---
+  const thicknessScale = 130 / res;
+  const minThickness = 0.5 * thicknessScale;
+  const maxThickness = 4.0 * thicknessScale;
+  
+  function drawBatch() {
+    if (!isDrawing) return;
+    
+    const batchSize = 100; 
+
+    for (let k = 0; k < batchSize; k++) {
+      if (step >= finalPath.length - 1) {
+        isDrawing = false;
+        statusDiv.textContent = "Done!";
+        return;
+      }
+
+      const p1 = finalPath[step];
+      const p2 = finalPath[step + 1];
+
+      const x1 = offsetX + p1.x * scaleX;
+      const y1 = offsetY + p1.y * scaleY;
+      const x2 = offsetX + p2.x * scaleX;
+      const y2 = offsetY + p2.y * scaleY;
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+
+      const progress = step / finalPath.length; 
+      let baseT = minThickness + (maxThickness - minThickness) * progress;
+
+      // Adjust decay for resolution density
+      let distFactor = 1 / (1 + (dist * (0.04 / thicknessScale)));
+
+      ctx.lineWidth = Math.max(0.05, baseT * distFactor);
+      const opacity = Math.max(0.3, Math.min(1, distFactor * 2)); 
+      
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      step++;
+    }
+
+    animationId = requestAnimationFrame(drawBatch);
+  }
+
+  drawBatch();
+}
+</script>
+
+</body>
 </html>
