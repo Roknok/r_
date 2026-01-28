@@ -22,17 +22,21 @@ let flashColor = null;
 function setup() {
   pixelDensity(1);
   if (windowHeight < windowWidth) {
+
     createCanvas(windowWidth, windowHeight);
   } else {
     document.querySelector("canvas").classList.add("rot");
-    createCanvas(windowHeight, windowWidth);
+    const width = window.innerWidth;
+const height = window.innerHeight;
+
+    createCanvas(height, width);
   }
 
   rectMode(CORNER);
   noStroke();
 
   // 🚫 disable page scrolling on mobile
-  document.body.style.overflow = "hidden";
+//   document.body.style.overflow = "hidden";
 
   levels = [
     {
@@ -103,7 +107,7 @@ function calculateViewport() {
 
 function draw() {
   clear();
-  
+//   print(mouseX,mouseY)
 
   // ⬛ letterbox areas
   fill(0);
