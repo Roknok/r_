@@ -20,14 +20,14 @@ let flashAlpha = 0;
 let flashColor = null;
 
 function setup() {
-  pixelDensity(1)
-  if (windowHeight<windowWidth){
-  createCanvas(windowWidth, windowHeight);
-  }else{
-
-    document.querySelector('canvas').classList.add("rot")
-  createCanvas( windowHeight,windowWidth);
+  pixelDensity(1);
+  if (windowHeight < windowWidth) {
+    createCanvas(windowWidth, windowHeight);
+  } else {
+    document.querySelector("canvas").classList.add("rot");
+    createCanvas(windowHeight, windowWidth);
   }
+
   rectMode(CORNER);
   noStroke();
 
@@ -36,8 +36,18 @@ function setup() {
 
   levels = [
     {
-      start: { x: 80, y: 360, size: 30 },
-      goal: { x: 1180, y: 320, w: 60, h: 120 },
+      start: { x: 80, y: 360, size: 50 },
+      goal: { x: 1100, y: 300, w: 120, h: 120 },
+      walls: []
+    },
+    {
+      start: { x: 80, y: 600, size: 50 },
+      goal: { x: 80, y: 100, w: 120, h: 120 },
+      walls: [{ x: 0, y: 400, w: 1100, h: 30 }]
+    },
+    {
+      start: { x: 80, y: 360, size: 50 },
+      goal: { x: 1100, y: 320, w: 120, h: 120 },
       walls: [
         { x: 360, y: 0, w: 30, h: 460 },
         { x: 640, y: 260, w: 30, h: 460 },
@@ -45,7 +55,7 @@ function setup() {
       ]
     },
     {
-      start: { x: 80, y: 80, size: 30 },
+      start: { x: 80, y: 80, size: 50 },
       goal: { x: 1150, y: 560, w: 80, h: 120 },
       walls: [
         { x: 240, y: 0, w: 30, h: 520 },
@@ -53,16 +63,35 @@ function setup() {
         { x: 720, y: 0, w: 30, h: 520 },
         { x: 960, y: 200, w: 30, h: 520 }
       ]
+    },
+    {
+      start: { x: 80, y: 360, size: 50 },
+      goal: { x: 1100, y: 320, w: 120, h: 120 },
+      walls: [
+        { x: 360, y: 500, w: 600, h: 30 },
+        { x: 360, y: 300, w: 600, h: 30 },
+        { x: 360, y: 500, w: 30, h: 460 },
+        { x: 930, y: 500, w: 30, h: 460 },
+        { x: 360, y: -150, w: 30, h: 460 },
+        { x: 930, y: -150, w: 30, h: 460 }
+      ]
+    },
+    {
+      start: { x: 80, y: 360, size: 50 },
+      goal: { x: 1100, y: 320, w: 120, h: 120 },
+      walls: [
+        { x: 360, y: 450, w: 600, h: 30 },
+        { x: 360, y: 300, w: 600, h: 30 },
+        { x: 360, y: 450, w: 30, h: 460 },
+        { x: 930, y: 450, w: 30, h: 460 },
+        { x: 360, y: -150, w: 30, h: 460 },
+        { x: 930, y: -150, w: 30, h: 460 }
+      ]
     }
   ];
 
   calculateViewport();
   loadLevel(currentLevel);
-}
-
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  calculateViewport();
 }
 
 // 📐 Letterbox math
@@ -73,31 +102,68 @@ function calculateViewport() {
 }
 
 function draw() {
-  background(0);
+  clear();
+  
 
+  // ⬛ letterbox areas
+  fill(0);
+  noStroke();
+  rect(0, 0, width, offsetY);
+  rect(0, offsetY + GAME_H * scaleFactor, width, height);
+  rect(0, offsetY, offsetX, GAME_H * scaleFactor);
+  rect(offsetX + GAME_W * scaleFactor, offsetY, width, GAME_H * scaleFactor);
+
+  // 🎮 playable area
   push();
   translate(offsetX, offsetY);
   scale(scaleFactor);
 
-  background(15, 25, 45);
+  fill(15, 25, 45);
+  rect(0, 0, GAME_W, GAME_H);
+  if (currentLevel === 0) {
+    drawLevelIntroText();
+  }
 
   drawLevel();
   updateDragMovement();
   checkCollisions();
   drawPlayer();
+
+
   drawUI();
   drawFlash();
 
   pop();
 }
 
-// 🎯 Unified pointer position (mouse + touch)
+// 📝 tutorial text (LEVEL 1 ONLY)
+function drawLevelIntroText() {
+  fill(255);
+  textAlign(LEFT, CENTER);
+  textSize(36);
+
+  text(
+    "↑\nGRAB THE SQUARE",
+    100,
+    470
+  );
+
+  textAlign(RIGHT, CENTER);
+    text(
+    "↑\nAND PUT IT HERE",
+    1200,
+    470
+  );
+
+}
+
+// 🎯 Unified pointer position
 function getPointerPos() {
   let x, y;
 
-  if (touches.length > 0) {
-    x = touches[0].x;
-    y = touches[0].y;
+  if (windowHeight > windowWidth) {
+    y = windowWidth - mouseX;
+    x = mouseY;
   } else {
     x = mouseX;
     y = mouseY;
@@ -114,7 +180,6 @@ function updateDragMovement() {
   if (!dragging) return;
 
   let p = getPointerPos();
-
   let targetX = p.x - dragOffsetX;
   let targetY = p.y - dragOffsetY;
 
