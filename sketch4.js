@@ -16,6 +16,7 @@ const YELLOW = "#F4D35E";
 const GREEN = "#2E7D32";
 
 function setup() {
+    pixelDensity(1);
   createCanvas(700, 600);
   textAlign(CENTER, CENTER);
 }
@@ -212,6 +213,21 @@ function idealPoints(type, samples) {
 
   return samplePolygon(polygons[type], samples);
 }
+function touchStarted() {
+  mousePressed();
+  return false; // prevent scrolling
+}
+
+function touchMoved() {
+  mouseDragged();
+  return false; // prevent scrolling
+}
+
+function touchEnded() {
+  mouseReleased();
+  return false; // prevent scrolling
+}
+
 
 function samplePolygon(v, samples) {
   let edges = [];
