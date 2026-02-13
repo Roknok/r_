@@ -24,7 +24,7 @@ body {
     text-align: center;
 }
 
-.container {
+.cont {
     width: 90%;
     max-width: 420px;
     background: rgba(255, 255, 255, 0.18);
@@ -41,7 +41,7 @@ h1 {
     margin-bottom: 25px;
 }
 
-.slider-container {
+.slider-cont {
     margin: 30px 0;
 }
 
@@ -108,16 +108,16 @@ button:active {
 
 <body>
 
-<div class="container">
-    <h1>Aatrei 💖</h1>
+<div class="cont">
+    <h1>Hey Aatrei 💖</h1>
 
-    <div class="slider-container">
-        <label style="font-size:18px;">Love</label>
+    <div class="slider-cont">
+        <label style="font-size:18px; display:block; margin-bottom:15px;">Our Love</label>
         <input type="range" id="loveSlider" min="0" max="100" step="0.01" value="0">
         <div class="percentage" id="percentDisplay">0%</div>
     </div>
 
-    <div class="message" id="message">Slide slowly… love takes time 💫</div>
+    <div class="message" id="message">Slide slowly… love takes time 😉</div>
 
     <button id="secretButton">Also another thing… 💌</button>
 </div>
@@ -133,14 +133,14 @@ let locked = false;
 let smoothTarget = 0;
 
 const messages = [
-    {percent: 0, text: "Slide slowly… love takes time 💫"},
+    {percent: 0, text: "Slide slowly… love takes time 😉"},
     {percent: 10, text: "It starts with a smile 😊"},
-    {percent: 25, text: "Then comes butterflies 🦋"},
-    {percent: 40, text: "And comfort 💞"},
-    {percent: 60, text: "Then trust 🤍"},
-    {percent: 75, text: "And deep connection 🌹"},
-    {percent: 90, text: "Almost there… forever territory ♾️"},
-    {percent: 100, text: "Infinity. Locked. Ours forever 💘"}
+    {percent: 25, text: "Then the conversations get a little longer ✨"},
+    {percent: 40, text: "Getting more comfortable 💛"},
+    {percent: 60, text: "Growing closer step by step 🤍"},
+    {percent: 75, text: "Sharing more laughs together 🌸"},
+    {percent: 90, text: "This feels really special 🌷"},
+    {percent: 100, text: "100%. Just us. Forever 💖"}
 ];
 
 function smoothIncrease() {
