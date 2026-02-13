@@ -1,12 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
-<link rel="stylesheet" type="text/css" href="style.css">
-<script defer src="sketch4.js"></script>
-    <meta charset="utf-8" />
-    <title>Yellow Square</title>
-  </head>
-  <body>
-      </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For Aatrei 💘</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #ff6a88, #ff99ac);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: white;
+    text-align: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 30px 25px;
+    border-radius: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+h1 {
+    font-size: 28px;
+    margin-bottom: 25px;
+}
+
+.slider-container {
+    margin: 30px 0;
+}
+
+input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.4);
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 28px;
+    width: 28px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.2);
+}
+
+.percentage {
+    font-size: 22px;
+    margin-top: 10px;
+}
+
+.message {
+    margin-top: 20px;
+    font-size: 18px;
+    min-height: 40px;
+    transition: 0.3s;
+}
+
+/* Only adjusted this section to guarantee centering */
+button {
+    margin: 30px auto 0 auto;
+    padding: 14px 22px;
+    font-size: 16px;
+    border: none;
+    border-radius: 30px;
+    background: white;
+    color: #ff4f7b;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    transition: 0.3s;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+.locked {
+    pointer-events: none;
+    opacity: 0.8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Aatrei 💖</h1>
+
+    <div class="slider-container">
+        <label style="font-size:18px;">Love</label>
+        <input type="range" id="loveSlider" min="0" max="100" step="0.01" value="0">
+        <div class="percentage" id="percentDisplay">0%</div>
+    </div>
+
+    <div class="message" id="message">Slide slowly… love takes time 💫</div>
+
+    <button id="secretButton">Also another thing… 💌</button>
+</div>
+
+<script>
+const slider = document.getElementById("loveSlider");
+const percentDisplay = document.getElementById("percentDisplay");
+const message = document.getElementById("message");
+const secretButton = document.getElementById("secretButton");
+
+let currentValue = 0;
+let locked = false;
+let smoothTarget = 0;
+
+const messages = [
+    {percent: 0, text: "Slide slowly… love takes time 💫"},
+    {percent: 10, text: "It starts with a smile 😊"},
+    {percent: 25, text: "Then comes butterflies 🦋"},
+    {percent: 40, text: "And comfort 💞"},
+    {percent: 60, text: "Then trust 🤍"},
+    {percent: 75, text: "And deep connection 🌹"},
+    {percent: 90, text: "Almost there… forever territory ♾️"},
+    {percent: 100, text: "Infinity. Locked. Ours forever 💘"}
+];
+
+function smoothIncrease() {
+    if (locked) return;
+
+    if (smoothTarget > currentValue) {
+        currentValue += 0.08;
+        if (currentValue > smoothTarget) {
+            currentValue = smoothTarget;
+        }
+
+        slider.value = currentValue;
+        percentDisplay.textContent = Math.floor(currentValue) + "%";
+        updateMessage();
+    }
+
+    requestAnimationFrame(smoothIncrease);
+}
+
+function updateMessage() {
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (currentValue >= messages[i].percent) {
+            message.textContent = messages[i].text;
+            break;
+        }
+    }
+
+    if (currentValue >= 100 && !locked) {
+        locked = true;
+        slider.classList.add("locked");
+        percentDisplay.textContent = "100%";
+        secretButton.style.display = "block";
+    }
+}
+
+slider.addEventListener("input", () => {
+    if (locked) return;
+
+    let attempted = parseFloat(slider.value);
+
+    if (attempted < currentValue) {
+        slider.value = currentValue;
+        message.textContent = "Our love never decreases 💘";
+        return;
+    }
+
+    if (attempted > currentValue + 2) {
+        attempted = currentValue + 2;
+    }
+
+    smoothTarget = attempted;
+});
+
+secretButton.addEventListener("click", () => {
+    message.textContent = "Aatrei… I love you. Happy Valentine's Day 💖";
+});
+
+setInterval(() => {
+    const heart = document.createElement("div");
+    heart.innerHTML = "💗";
+    heart.style.position = "absolute";
+    heart.style.left = Math.random() * 100 + "vw";
+    heart.style.bottom = "-20px";
+    heart.style.fontSize = "20px";
+    heart.style.opacity = Math.random();
+    heart.style.transition = "6s linear";
+    document.body.appendChild(heart);
+
+    setTimeout(() => {
+        heart.style.bottom = "110vh";
+    }, 100);
+
+    setTimeout(() => {
+        heart.remove();
+    }, 6000);
+}, 800);
+
+smoothIncrease();
+</script>
+
+</body>
 </html>
