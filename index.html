@@ -44,26 +44,32 @@ var h = 0;
 var buf1 = null;
 var buf2 = null;
 
-var currentImage = "image.jpg";
-var img = new Image();
-img.src = currentImage;
+var img1 = new Image();
+var img2 = new Image();
+
+img1.src = "image.jpg";
+img2.src = "image.png";
+
+var activeImage = img1;
 
 var srcC = document.createElement("canvas");
 var srcCtx = srcC.getContext("2d");
 
 var bg = "rgb(200,225,255)";
 
+// RIPPLE COOLDOWN (200ms = 5 per second)
+var lastRippleTime = 0;
+var rippleDelay = 200;
+
 function resizeCanvas(){
     c.width = window.innerWidth;
     c.height = window.innerHeight;
-    c.style.width = window.innerWidth + "px";
-    c.style.height = window.innerHeight + "px";
 
     w = c.width;
     h = c.height;
 
-    if(img.complete){
-        start(img);
+    if(activeImage.complete){
+        start(activeImage);
     }
 }
 
@@ -95,24 +101,8 @@ function start(imgObj){
     ctx.drawImage(srcC,0,0);
 }
 
-img.onload = function(){
-    start(img);
-};
-
-img.onerror = function(){
-    var temp = document.createElement("canvas");
-    temp.width = 800;
-    temp.height = 500;
-    var t = temp.getContext("2d");
-
-    t.fillStyle = "#3366cc";
-    t.fillRect(0,0,800,500);
-
-    t.fillStyle = "white";
-    t.font = "50px Arial";
-    t.fillText("image not found",50,250);
-
-    start(temp);
+img1.onload = function(){
+    start(img1);
 };
 
 function getCanvasCoords(clientX, clientY){
@@ -127,6 +117,16 @@ function getCanvasCoords(clientX, clientY){
 }
 
 function splash(mx,my){
+
+    var now = Date.now();
+
+    // cooldown check
+    if(now - lastRippleTime < rippleDelay){
+        return;
+    }
+
+    lastRippleTime = now;
+
     if(!buf1) return;
 
     mx = Math.floor(mx);
@@ -145,7 +145,6 @@ function splash(mx,my){
     }
 }
 
-// POINTER EVENTS (BEST FOR MOBILE + DESKTOP)
 c.addEventListener("pointerdown", function(e){
     var pos = getCanvasCoords(e.clientX, e.clientY);
     splash(pos.x, pos.y);
@@ -215,22 +214,15 @@ function loop(){
 
 requestAnimationFrame(loop);
 
-// SECRET BUTTON
 document.getElementById("secret").addEventListener("click", function(){
 
-    if(currentImage == "image.jpg"){
-        currentImage = "image.png";
+    if(activeImage === img1){
+        activeImage = img2;
     } else {
-        currentImage = "image.jpg";
+        activeImage = img1;
     }
 
-    img = new Image();
-    img.src = currentImage;
-
-    img.onload = function(){
-        start(img);
-    };
-
+    start(activeImage);
 });
 
 </script>
