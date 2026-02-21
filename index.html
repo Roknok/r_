@@ -1,231 +1,529 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ripple Screen</title>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Color Guessing Game — 20-question Quiz</title>
 <style>
-html,body{
-    margin:0;
-    padding:0;
-    overflow:hidden;
-    height:100%;
-    background:black;
-}
-canvas{
-    display:block;
-    touch-action:none;
-}
-#secret{
-    position:fixed;
-    bottom:10px;
-    right:15px;
-    color:blue;
-    font-family:Arial;
-    font-size:14px;
+  :root { --bg: #f4f4f4; --card: #fff; --muted: #666; --accent: #4169E1; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .container {
+    width: 90%;
+    max-width: 760px;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { margin: 0 0 0.5rem 0; font-size: 1.2rem; text-align:center; }
+  .meta { display:flex; justify-content:space-between; align-items:center; color:var(--muted); width:100%; margin-bottom:1rem; }
+  #colorBox {
+    width: 180px;
+    height: 180px;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 6px rgba(255,255,255,0.15), 0 6px 18px rgba(0,0,0,0.12);
+    border: 2px solid black;
+    flex-shrink: 0;
+  }
+  .level { font-weight:600; color:var(--accent); }
+
+  /* ---------- QUESTION AREA ---------- */
+  .qArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 1rem;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+  }
+  .option-btn {
+    min-width: 160px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    border: 2px solid #dcdcdc;
+    background: white;
+    font-weight:700;
     cursor:pointer;
-}
+    transition: transform .08s ease, background .12s ease;
+  }
+  .option-btn:hover { transform: translateY(-3px); }
+  .option-btn.correct { background: #a0ffa0; border-color: #7fe07f; }
+  .option-btn.wrong { background: #ffbdbd; border-color: #ff8f8f; }
+
+  .controls { display:flex; gap:10px; justify-content:center; margin-top:14px; }
+  #nextBtn, #restartBtn {
+    padding: 0.5rem 1rem;
+    border-radius:8px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor:pointer;
+    font-weight:700;
+  }
+  #nextBtn[disabled] { opacity: 0.5; cursor: default; }
+  #scoreBox { text-align:center; margin-top: 12px; color:var(--muted); }
+  .small { font-size:0.9rem; color:var(--muted); }
+  .final {
+    text-align:center;
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(65,105,225,0.06), rgba(65,105,225,0.02));
+  }
+
+  /* ---------- DESKTOP LAYOUT ---------- */
+  @media(min-width:768px) {
+    .qArea {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+    }
+    .options {
+      flex-direction: column;
+      align-items: flex-start;
+      width: auto;
+    }
+    .option-btn { min-width: 180px; }
+  }
 </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Color Guessing Game — 20 Questions</h1>
+    <div class="meta">
+      <div><span id="qLabel">Question 1 / 20</span> · <span id="levelLabel" class="level">Easy</span></div>
+      <div class="small">Score: <span id="score">0</span></div>
+    </div>
 
-<canvas id="c"></canvas>
-<div id="secret">dont click here</div>
+    <div class="qArea">
+      <div id="colorBox" aria-hidden="true"></div>
+
+      <div class="options" id="options">
+        <button class="option-btn" id="opt0"></button>
+        <button class="option-btn" id="opt1"></button>
+        <button class="option-btn" id="opt2"></button>
+        <button class="option-btn" id="opt3"></button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="nextBtn" disabled>Next</button>
+      <button id="restartBtn" style="display:none;">Restart Quiz</button>
+    </div>
+
+    <div id="scoreBox" class="small">Pick the color name that best matches the swatch above.</div>
+    <div id="finalBox" style="display:none;" class="final"></div>
+  </div>
 
 <script>
+    let correctEasy = 0;
+let correctMedium = 0;
+let correctHard = 0;
+let correctVery = 0;
+// ---------- COLORS (sorted by commonness: common CSS names first, extras later) ----------
+const colors = [
+  /* CSS named colors (common) — this section should be recognized by most people */
+  { name: "White", hex: "#FFFFFF" }, { name: "Black", hex: "#000000" },
+  { name: "Red", hex: "#FF0000" }, { name: "Green", hex: "#008000" }, { name: "Blue", hex: "#0000FF" },
+  { name: "Yellow", hex: "#FFFF00" }, { name: "Cyan", hex: "#00FFFF" }, { name: "Magenta", hex: "#FF00FF" },
+  { name: "Pink", hex: "#FFC0CB" }, { name: "Orange", hex: "#FFA500" },
+  { name: "Purple", hex: "#800080" }, { name: "Brown", hex: "#A52A2A" }, { name: "Gray", hex: "#808080" },
+  { name: "Silver", hex: "#C0C0C0" }, { name: "Gold", hex: "#FFD700" }, { name: "Navy", hex: "#000080" },
+  { name: "Teal", hex: "#008080" }, { name: "Olive", hex: "#808000" }, { name: "Maroon", hex: "#800000" },
+  { name: "Lime", hex: "#00FF00" }, { name: "SkyBlue", hex: "#87CEEB" }, { name: "RoyalBlue", hex: "#4169E1" },
+  { name: "DodgerBlue", hex: "#1E90FF" }, { name: "Turquoise", hex: "#40E0D0" }, { name: "Coral", hex: "#FF7F50" },
+  { name: "Salmon", hex: "#FA8072" }, { name: "Salmon2", hex: "#FF8C69" }, { name: "SandyBrown", hex: "#F4A460" },
+  { name: "Tomato", hex: "#FF6347" }, { name: "Chocolate", hex: "#D2691E" }, { name: "Sienna", hex: "#A0522D" },
+  { name: "Beige", hex: "#F5F5DC" }, { name: "Ivory", hex: "#FFFFF0" }, { name: "Lavender", hex: "#E6E6FA" },
+  { name: "Orchid", hex: "#DA70D6" }, { name: "Violet", hex: "#EE82EE" }, { name: "Plum", hex: "#DDA0DD" },
+  { name: "Crimson", hex: "#DC143C" }, { name: "FireBrick", hex: "#B22222" }, { name: "DarkRed", hex: "#8B0000" },
+  { name: "ForestGreen", hex: "#228B22" }, { name: "SeaGreen", hex: "#2E8B57" }, { name: "MediumSeaGreen", hex: "#3CB371" },
+  { name: "MintCream", hex: "#F5FFFA" }, { name: "MistyRose", hex: "#FFE4E1" }, { name: "PeachPuff", hex: "#FFDAB9" },
+  { name: "PowderBlue", hex: "#B0E0E6" }, { name: "LightBlue", hex: "#ADD8E6" }, { name: "LightGreen", hex: "#90EE90" },
+  { name: "LightPink", hex: "#FFB6C1" }, { name: "LightSalmon", hex: "#FFA07A" }, { name: "DarkBlue", hex: "#00008B" },
+  { name: "Indigo", hex: "#4B0082" }, { name: "RebeccaPurple", hex: "#663399" }, { name: "SteelBlue", hex: "#4682B4" },
+  { name: "SlateGray", hex: "#708090" }, { name: "SlateBlue", hex: "#6A5ACD" }, { name: "CornflowerBlue", hex: "#6495ED" },
+  { name: "CadetBlue", hex: "#5F9EA0" }, { name: "Aqua", hex: "#00FFFF" }, { name: "Azure", hex: "#F0FFFF" },
+  { name: "Aquamarine", hex: "#7FFFD4" }, { name: "Chartreuse", hex: "#7FFF00" }, { name: "LemonChiffon", hex: "#FFFACD" },
+  { name: "Khaki", hex: "#F0E68C" }, { name: "Wheat", hex: "#F5DEB3" }, { name: "NavajoWhite", hex: "#FFDEAD" },
+  /* ---------------- extras / less common names (added later / less likely to be recognized) ---------------- */
+  { name: "Periwinkle", hex: "#CCCCFF" }, { name: "Cerulean", hex: "#007BA7" }, { name: "ElectricBlue", hex: "#7DF9FF" },
+  { name: "TurquoiseBlue", hex: "#00FFEF" }, { name: "TealBlue", hex: "#367588" }, { name: "Mint", hex: "#98FF98" },
+  { name: "CoralPink", hex: "#F88379" }, { name: "Cerise", hex: "#DE3163" }, { name: "Mulberry", hex: "#70193D" },
+  { name: "Ruby", hex: "#E0115F" }, { name: "Burgundy", hex: "#800020" }, { name: "Wine", hex: "#722F37" },
+  { name: "Mahogany", hex: "#C04000" }, { name: "Saffron", hex: "#F4C430" }, { name: "Amber", hex: "#FFBF00" },
+  { name: "Mango", hex: "#FF8243" }, { name: "Mustard", hex: "#FFDB58" }, { name: "Pistachio", hex: "#93C572" },
+  { name: "Matcha", hex: "#A8C25D" }, { name: "ForestFern", hex: "#4F7942" }, { name: "Denim", hex: "#1560BD" },
+  { name: "IndigoDye", hex: "#00416A" }, { name: "Gunmetal", hex: "#2A3439" }, { name: "Charcoal", hex: "#36454F" },
+  { name: "Copper", hex: "#B87333" }, { name: "Bronze", hex: "#CD7F32" }, { name: "CopperRose", hex: "#996666" },
+  { name: "Bone", hex: "#E3DAC9" }, { name: "Oyster", hex: "#E9E4D4" }, { name: "Sandstone", hex: "#786D5F" },
+  { name: "Pebble", hex: "#BDB6B6" }, { name: "SteelGray", hex: "#8A8F8F" }, { name: "IvoryBlack", hex: "#000000" }
+];
 
-var c = document.getElementById("c");
-var ctx = c.getContext("2d", { alpha:false });
+// ---------- UTILS: color conversions and perceptual distance (Lab) ----------
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const bigint = parseInt(hex, 16);
+  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+// sRGB (0..255) -> linear 0..1
+function srgbToLinear(v) {
+  v = v / 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+// linear RGB -> XYZ (D65)
+function rgbToXyz(r, g, b) {
+  const R = srgbToLinear(r);
+  const G = srgbToLinear(g);
+  const B = srgbToLinear(b);
+  // Matrix transform (sRGB D65)
+  const X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
+  const Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
+  const Z = R * 0.0193339 + G * 0.1191920 + B * 0.9503041;
+  return { X: X * 100, Y: Y * 100, Z: Z * 100 };
+}
+// XYZ -> Lab (D65 reference)
+function xyzToLab(X, Y, Z) {
+  // Reference white D65
+  const Xn = 95.047, Yn = 100.0, Zn = 108.883;
+  let x = X / Xn, y = Y / Yn, z = Z / Zn;
+  const f = v => v > 0.008856 ? Math.cbrt(v) : (7.787 * v) + (16/116);
+  const fx = f(x), fy = f(y), fz = f(z);
+  const L = (116 * fy) - 16;
+  const a = 500 * (fx - fy);
+  const b = 200 * (fy - fz);
+  return { L, a, b };
+}
+function hexToLab(hex) {
+  const rgb = hexToRgb(hex);
+  const xyz = rgbToXyz(rgb.r, rgb.g, rgb.b);
+  return xyzToLab(xyz.X, xyz.Y, xyz.Z);
+}
+function deltaELab(lab1, lab2) {
+  const dL = lab1.L - lab2.L;
+  const da = lab1.a - lab2.a;
+  const db = lab1.b - lab2.b;
+  return Math.sqrt(dL*dL + da*da + db*db);
+}
 
-var w = 0;
-var h = 0;
+// ---------- prepare allColors with Lab coordinates (preserve original order = commonness order) ----------
+const uniqueByName = (() => {
+  const seen = new Set(), out = [];
+  for (const c of colors) {
+    if (!seen.has(c.name)) { seen.add(c.name); out.push(c); }
+  }
+  return out;
+})();
+const allColors = uniqueByName.map(c => ({ ...c, lab: hexToLab(c.hex) }));
 
-var buf1 = null;
-var buf2 = null;
-
-var img1 = new Image();
-var img2 = new Image();
-
-img1.src = "image.jpg";
-img2.src = "image.png";
-
-var activeImage = img1;
-
-var srcC = document.createElement("canvas");
-var srcCtx = srcC.getContext("2d");
-
-var bg = "rgb(200,225,255)";
-
-// RIPPLE COOLDOWN (200ms = 5 per second)
-var lastRippleTime = 0;
-var rippleDelay = 200;
-
-function resizeCanvas(){
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-
-    w = c.width;
-    h = c.height;
-
-    if(activeImage.complete){
-        start(activeImage);
+// ---------- Build a similarity-ordered array (greedy nearest-neighbour path) ----------
+function buildSimilarityOrder(arr) {
+  if (!arr.length) return [];
+  const used = new Array(arr.length).fill(false);
+  const order = [];
+  // start from the first element (preserves commonness as a starting anchor)
+  let currentIndex = 0;
+  order.push(arr[currentIndex]);
+  used[currentIndex] = true;
+  for (let k = 1; k < arr.length; k++) {
+    let nearestIdx = -1;
+    let nearestDist = Infinity;
+    for (let i = 0; i < arr.length; i++) {
+      if (used[i]) continue;
+      const d = deltaELab(arr[currentIndex].lab, arr[i].lab);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestIdx = i;
+      }
     }
+    if (nearestIdx === -1) break;
+    used[nearestIdx] = true;
+    order.push(arr[nearestIdx]);
+    currentIndex = nearestIdx;
+  }
+  return order;
+}
+const colorsBySimilarity = buildSimilarityOrder(allColors);
+// colorsBySimilarity is now an array arranged so similar colors are adjacent.
+// (We keep allColors untouched so the quiz still uses commonness pools for selecting targets.)
+
+// ---------- UTILS (existing + adapted to Lab distances) ----------
+function sampleRandom(arr, n) {
+  const copy = arr.slice();
+  const out = [];
+  for (let i=0;i<n;i++) {
+    if (copy.length === 0) break;
+    const idx = Math.floor(Math.random()*copy.length);
+    out.push(copy.splice(idx,1)[0]);
+  }
+  return out;
 }
 
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
+// determine pool cutoffs by fractions (common -> uncommon)
+const total = allColors.length;
+const easyEnd = Math.max(20, Math.ceil(total * 0.35));      // most common
+const mediumEnd = easyEnd + Math.ceil(total * 0.30);        // moderately common
+const hardEnd = mediumEnd + Math.ceil(total * 0.20);        // less common
+// very hard = remainder
 
-function start(imgObj){
+const easyPool = allColors.slice(0, easyEnd);
+const mediumPool = allColors.slice(easyEnd, mediumEnd);
+const hardPool = allColors.slice(mediumEnd, hardEnd);
+const veryHardPool = allColors.slice(hardEnd);
 
-    if(!w || !h) return;
-
-    var scale = Math.min(w / imgObj.width, h / imgObj.height);
-    var iw = imgObj.width * scale;
-    var ih = imgObj.height * scale;
-
-    var x = (w - iw) / 2;
-    var y = (h - ih) / 2;
-
-    srcC.width = w;
-    srcC.height = h;
-
-    srcCtx.fillStyle = bg;
-    srcCtx.fillRect(0,0,w,h);
-
-    srcCtx.drawImage(imgObj, x, y, iw, ih);
-
-    buf1 = new Int32Array(w*h);
-    buf2 = new Int32Array(w*h);
-
-    ctx.drawImage(srcC,0,0);
-}
-
-img1.onload = function(){
-    start(img1);
-};
-
-function getCanvasCoords(clientX, clientY){
-    var rect = c.getBoundingClientRect();
-    var scaleX = c.width / rect.width;
-    var scaleY = c.height / rect.height;
-
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
-}
-
-function splash(mx,my){
-
-    var now = Date.now();
-
-    // cooldown check
-    if(now - lastRippleTime < rippleDelay){
-        return;
+// pick 5 random from each pool (if pool too small, sample with fallback to adjacent pools)
+function pickFromPool(pool, needed, fallbackPools=[]) {
+  const result = [];
+  const poolCopy = pool.slice();
+  while (result.length < needed) {
+    if (poolCopy.length === 0) {
+      // fallback to other pools in order
+      if (fallbackPools.length === 0) break;
+      const nextPool = fallbackPools.shift();
+      poolCopy.push(...nextPool.slice());
+      continue;
     }
-
-    lastRippleTime = now;
-
-    if(!buf1) return;
-
-    mx = Math.floor(mx);
-    my = Math.floor(my);
-
-    for(var yy=-10; yy<10; yy++){
-        for(var xx=-10; xx<10; xx++){
-
-            var px = mx + xx;
-            var py = my + yy;
-
-            if(px>1 && px<w-1 && py>1 && py<h-1){
-                buf1[py*w + px] = 2000;
-            }
-        }
-    }
+    const idx = Math.floor(Math.random() * poolCopy.length);
+    result.push(poolCopy.splice(idx,1)[0]);
+  }
+  return result;
 }
 
-c.addEventListener("pointerdown", function(e){
-    var pos = getCanvasCoords(e.clientX, e.clientY);
-    splash(pos.x, pos.y);
+const qEasy = pickFromPool(easyPool, 5, [mediumPool]);
+const qMedium = pickFromPool(mediumPool, 5, [easyPool, hardPool]);
+const qHard = pickFromPool(hardPool, 5, [mediumPool, veryHardPool]);
+const qVery = pickFromPool(veryHardPool, 5, [hardPool, mediumPool]);
+
+// Compose the 20-question sequence: 5 easy, 5 medium, 5 hard, 5 very hard (in that order)
+const questionSequence = [...qEasy, ...qMedium, ...qHard, ...qVery];
+
+// If for any reason we have <20 (rare), fill from overall pool
+if (questionSequence.length < 20) {
+  const fill = sampleRandom(allColors.filter(c => !questionSequence.includes(c)), 20 - questionSequence.length);
+  questionSequence.push(...fill);
+}
+
+// ---------- GAME STATE ----------
+let questionIndex = 0;
+let score = 0;
+let answered = false;
+
+// DOM
+const colorBox = document.getElementById('colorBox');
+const optButtons = [0,1,2,3].map(i => document.getElementById('opt'+i));
+const qLabel = document.getElementById('qLabel');
+const levelLabel = document.getElementById('levelLabel');
+const scoreSpan = document.getElementById('score');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
+const finalBox = document.getElementById('finalBox');
+const scoreBox = document.getElementById('scoreBox');
+
+function setLevelLabel(idx) {
+  if (idx < 5) return "Easy";
+  if (idx < 10) return "Medium";
+  if (idx < 15) return "Hard";
+  return "Very Hard";
+}
+
+// ---------- makeOptionsForColor now uses perceptual (Lab) distances ----------
+// thresholds in DeltaE (Lab) units (perceptual)
+function makeOptionsForColor(target, difficultyTier) {
+  // difficultyTier: 'easy'|'medium'|'hard'|'very'
+  const pool = allColors.filter(c => c.name !== target.name);
+
+  // Perceptual DeltaE thresholds (empirical)
+  const thresholds = {
+    easy: { min: 100, max: 200 },    // very far (easy to distinguish)
+    medium: { min: 50, max: 150 },   // clearly different but somewhat closer
+    hard: { min: 30,  max: 100 },     // close-ish
+    very: { min: 0,  max: 30 }      // very similar if possible
+  };
+  let t = thresholds[difficultyTier];
+
+  // Find candidates within threshold
+  let candidates = pool.map(c => ({c, d: deltaELab(target.lab, c.lab)}))
+                       .filter(x => x.d >= t.min && x.d <= t.max)
+                       .sort((a,b) => a.d - b.d); // close-first (we may pick closest for hard)
+  // For 'easy' we prefer farthest, so reverse ordering for easy
+  if (difficultyTier === 'easy') candidates.reverse();
+
+  // If not enough candidates, progressively relax thresholds
+  let relaxSteps = 0;
+  const relaxOrder = {
+    easy:   [{min:30,max:200},{min:20,max:200},{min:0,max:200}],
+    medium: [{min:15,max:100},{min:10,max:140},{min:0,max:200}],
+    hard:   [{min:4, max:50},{min:2,max:70},{min:0,max:200}],
+    very:   [{min:0, max:20},{min:0,max:40},{min:0,max:200}]
+  }[difficultyTier];
+
+  while (candidates.length < 3 && relaxSteps < relaxOrder.length) {
+    const r = relaxOrder[relaxSteps];
+    const extra = pool.map(c => ({c, d: deltaELab(target.lab, c.lab)}))
+                      .filter(x => x.d >= r.min && x.d <= r.max && !candidates.find(y=>y.c.name===x.c.name));
+    // merge and re-sort: for easy, farthest first; otherwise close-first
+    candidates.push(...extra);
+    if (difficultyTier === 'easy') candidates.sort((a,b) => b.d - a.d);
+    else candidates.sort((a,b) => a.d - b.d);
+    // deduplicate by name
+    const seen = new Set();
+    candidates = candidates.filter(x => { if (seen.has(x.c.name)) return false; seen.add(x.c.name); return true; });
+    relaxSteps++;
+  }
+
+  // If still insufficient, just pick randoms
+  if (candidates.length < 3) {
+    const fallback = sampleRandom(pool, 3 - candidates.length);
+    candidates.push(...fallback.map(c=>({c,d:deltaELab(target.lab,c.lab)})));
+  }
+
+  // Pick first 3 candidates (they are reasonably ranked by closeness/farness)
+  const chosen = candidates.slice(0,3).map(x => x.c);
+
+  // Build options array and shuffle
+  const options = [target, ...chosen];
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return options;
+}
+
+function renderQuestion() {
+  answered = false;
+  nextBtn.disabled = true;
+  finalBox.style.display = 'none';
+  restartBtn.style.display = 'none';
+
+  if (questionIndex >= questionSequence.length) {
+    showFinal();
+    return;
+  }
+
+  const current = questionSequence[questionIndex];
+  colorBox.style.background = current.hex;
+  qLabel.textContent = `Question ${questionIndex + 1} / ${questionSequence.length}`;
+  levelLabel.textContent = setLevelLabel(questionIndex);
+  // determine difficulty tier string
+  const tier = questionIndex < 5 ? 'easy' : questionIndex < 10 ? 'medium' : questionIndex < 15 ? 'hard' : 'very';
+
+  const opts = makeOptionsForColor(current, tier);
+  opts.forEach((o, i) => {
+    const btn = optButtons[i];
+    btn.textContent = o.name;
+    btn.dataset.name = o.name;
+    btn.dataset.hex = o.hex;
+    btn.className = 'option-btn';
+    btn.disabled = false;
+    btn.onclick = () => onAnswer(o.name, btn);
+  });
+
+  // clear any remaining buttons (in case)
+  for (let i = opts.length; i < 4; i++) {
+    optButtons[i].textContent = '';
+    optButtons[i].disabled = true;
+  }
+}
+
+function onAnswer(selectedName, btn) {
+  if (answered) return;
+  answered = true;
+  const current = questionSequence[questionIndex];
+  // reveal results
+  optButtons.forEach(b => b.disabled = true);
+  
+  // determine difficulty tier
+  const tier = questionIndex < 5 ? 'easy' :
+               questionIndex < 10 ? 'medium' :
+               questionIndex < 15 ? 'hard' : 'very';
+
+  if (selectedName === current.name) {
+    score++;
+    btn.classList.add('correct');
+    // increment difficulty-specific counter
+    if (tier === 'easy') correctEasy++;
+    else if (tier === 'medium') correctMedium++;
+    else if (tier === 'hard') correctHard++;
+    else if (tier === 'very') correctVery++;
+  } else {
+    btn.classList.add('wrong');
+    // highlight correct one
+    optButtons.forEach(b => {
+      if (b.dataset.name === current.name) b.classList.add('correct');
+    });
+  }
+
+  scoreSpan.textContent = score;
+  nextBtn.disabled = false;
+  if (questionIndex === questionSequence.length - 1) nextBtn.textContent = 'Finish';
+}
+nextBtn.addEventListener('click', () => {
+  if (!answered) return;
+  questionIndex++;
+  if (questionIndex >= questionSequence.length) {
+    renderQuestion(); // will trigger final
+    return;
+  }
+  // update label and render
+  nextBtn.textContent = 'Next';
+  renderQuestion();
 });
 
-c.addEventListener("pointermove", function(e){
-    if(e.buttons){
-        var pos = getCanvasCoords(e.clientX, e.clientY);
-        splash(pos.x, pos.y);
-    }
+restartBtn.addEventListener('click', () => {
+  // refresh: reshuffle everything and restart
+  location.reload();
 });
 
-function loop(){
+function showFinal() {
+  // hide options and next, show final score summary
+  document.getElementById('options').style.display = 'none';
+  document.getElementById('colorBox').style.display = 'none';
+  nextBtn.style.display = 'none';
+  restartBtn.style.display = 'inline-block';
 
-    if(!buf1 || !buf2 || buf1.length !== w*h){
-        requestAnimationFrame(loop);
-        return;
-    }
-
-    var imgData = srcCtx.getImageData(0,0,w,h);
-    var pixels = imgData.data;
-
-    for(var y=1; y<h-1; y++){
-        for(var x=1; x<w-1; x++){
-
-            var i = y*w + x;
-
-            buf2[i] = (
-                buf1[i-1] +
-                buf1[i+1] +
-                buf1[i-w] +
-                buf1[i+w]
-            )/2 - buf2[i];
-
-            buf2[i] *= 0.98;
-
-            var dx = (buf2[i-1] - buf2[i+1]) / 12;
-            var dy = (buf2[i-w] - buf2[i+w]) / 12;
-
-            var sx = x + dx;
-            var sy = y + dy;
-
-            if(sx<0) sx=0;
-            if(sx>=w) sx=w-1;
-            if(sy<0) sy=0;
-            if(sy>=h) sy=h-1;
-
-            var si = (Math.floor(sy)*w + Math.floor(sx))*4;
-            var di = i*4;
-
-            if(si >= 0 && si+2 < pixels.length){
-                pixels[di]     = pixels[si];
-                pixels[di + 1] = pixels[si + 1];
-                pixels[di + 2] = pixels[si + 2];
-            }
-        }
-    }
-
-    ctx.putImageData(imgData,0,0);
-
-    var temp = buf1;
-    buf1 = buf2;
-    buf2 = temp;
-
-    requestAnimationFrame(loop);
+  const pct = Math.round((score / questionSequence.length) * 100);
+  finalBox.style.display = 'block';
+finalBox.innerHTML = `<h2>Quiz Complete</h2>
+  <div style="font-size:1.1rem; margin-top:8px;">Final score: <strong>${score} / ${questionSequence.length}</strong> (${Math.round(score/questionSequence.length*100)}%)</div>
+  <div class="small" style="margin-top:6px; color:#333;">
+    Correct by difficulty:<br>
+    Easy: ${correctEasy} / 5 · 
+    Medium: ${correctMedium} / 5 · 
+    Hard: ${correctHard} / 5 · 
+    Very Hard: ${correctVery} / 5
+  </div>
+  <div class="small" style="margin-top:6px; color:#333;">
+  </div>`;
+  // offer to show a review list of missed questions (optional)
+  scoreBox.textContent = 'Click "Restart Quiz" to play again.';
 }
 
-requestAnimationFrame(loop);
+// initial render
+renderQuestion();
 
-document.getElementById("secret").addEventListener("click", function(){
-
-    if(activeImage === img1){
-        activeImage = img2;
-    } else {
-        activeImage = img1;
-    }
-
-    start(activeImage);
-});
-
+// ---------- Optional: expose colorsBySimilarity for debugging -->
+// console.log('colorsBySimilarity', colorsBySimilarity.map(c=>c.name));
 </script>
-
 </body>
 </html>
