@@ -1,529 +1,212 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Guess the Color!</title>
+<title>Level Game</title>
 <style>
-  :root { --bg: #f4f4f4; --card: #fff; --muted: #666; --accent: #4169E1; }
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background: var(--bg);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+  body{
+    margin:0;
+    background:#0b0f1a;
+    color:white;
+    font-family:system-ui, sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
   }
-  .container {
-    width: 90%;
-    max-width: 760px;
-    background: var(--card);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  h1 { margin: 0 0 0.5rem 0; font-size: 1.2rem; text-align:center; }
-  .meta { display:flex; justify-content:space-between; align-items:center; color:var(--muted); width:100%; margin-bottom:1rem; }
-  #colorBox {
-    width: 180px;
-    height: 180px;
-    border-radius: 12px;
-    box-shadow: inset 0 2px 6px rgba(255,255,255,0.15), 0 6px 18px rgba(0,0,0,0.12);
-    border: 2px solid black;
-    flex-shrink: 0;
-  }
-  .level { font-weight:600; color:var(--accent); }
-
-  /* ---------- QUESTION AREA ---------- */
-  .qArea {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    gap: 1rem;
-  }
-  .options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    align-items: center;
-  }
-  .option-btn {
-    min-width: 160px;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    border: 2px solid #dcdcdc;
-    background: white;
-    font-weight:700;
-    cursor:pointer;
-    transition: transform .08s ease, background .12s ease;
-  }
-  .option-btn:hover { transform: translateY(-3px); }
-  .option-btn.correct { background: #a0ffa0; border-color: #7fe07f; }
-  .option-btn.wrong { background: #ffbdbd; border-color: #ff8f8f; }
-
-  .controls { display:flex; gap:10px; justify-content:center; margin-top:14px; }
-  #nextBtn, #restartBtn {
-    padding: 0.5rem 1rem;
-    border-radius:8px;
-    border: none;
-    background: var(--accent);
-    color: white;
-    cursor:pointer;
-    font-weight:700;
-  }
-  #nextBtn[disabled] { opacity: 0.5; cursor: default; }
-  #scoreBox { text-align:center; margin-top: 12px; color:var(--muted); }
-  .small { font-size:0.9rem; color:var(--muted); }
-  .final {
+  .box{
     text-align:center;
-    margin-top: 14px;
-    padding: 12px;
-    border-radius: 8px;
-    background: linear-gradient(90deg, rgba(65,105,225,0.06), rgba(65,105,225,0.02));
+    width:600px;
   }
-
-  /* ---------- DESKTOP LAYOUT ---------- */
-  @media(min-width:768px) {
-    .qArea {
-      flex-direction: row;
-      justify-content: center;
-      align-items: center;
-      gap: 2rem;
-    }
-    .options {
-      flex-direction: column;
-      align-items: flex-start;
-      width: auto;
-    }
-    .option-btn { min-width: 180px; }
+  .title{
+    font-size:20px;
+    margin-bottom:20px;
+    opacity:.8;
   }
+  .input{
+    font-size:28px;
+    letter-spacing:6px;
+    margin-bottom:20px;
+    min-height:40px;
+  }
+  .keyboard{margin-top:20px}
+  .row{display:flex;justify-content:center;gap:6px;margin:4px 0}
+  .key{
+    width:34px;
+    height:34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#111827;
+    border-radius:4px;
+    font-size:14px;
+  }
+  .message{margin-top:15px;color:#ff8c8c}
 </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Guess the Color!</h1>
-    <div class="meta">
-      <div><span id="qLabel">Question 1 / 20</span> · <span id="levelLabel" class="level">Easy</span></div>
-      <div class="small">Score: <span id="score">0</span></div>
-    </div>
-
-    <div class="qArea">
-      <div id="colorBox" aria-hidden="true"></div>
-
-      <div class="options" id="options">
-        <button class="option-btn" id="opt0"></button>
-        <button class="option-btn" id="opt1"></button>
-        <button class="option-btn" id="opt2"></button>
-        <button class="option-btn" id="opt3"></button>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button id="nextBtn" disabled>Next</button>
-      <button id="restartBtn" style="display:none;">Restart Quiz</button>
-    </div>
-
-    <div id="scoreBox" class="small">Pick the color name that best matches the swatch above.</div>
-    <div id="finalBox" style="display:none;" class="final"></div>
-  </div>
+<div class="box">
+  <div id="level" class="title"></div>
+  <div id="display" class="input"></div>
+  <div id="message" class="message"></div>
+  <div id="keyboard" class="keyboard" style="display:none"></div>
+</div>
 
 <script>
-    let correctEasy = 0;
-let correctMedium = 0;
-let correctHard = 0;
-let correctVery = 0;
-// ---------- COLORS (sorted by commonness: common CSS names first, extras later) ----------
-const colors = [
-  /* CSS named colors (common) — this section should be recognized by most people */
-  { name: "White", hex: "#FFFFFF" }, { name: "Black", hex: "#000000" },
-  { name: "Red", hex: "#FF0000" }, { name: "Green", hex: "#008000" }, { name: "Blue", hex: "#0000FF" },
-  { name: "Yellow", hex: "#FFFF00" }, { name: "Cyan", hex: "#00FFFF" }, { name: "Magenta", hex: "#FF00FF" },
-  { name: "Pink", hex: "#FFC0CB" }, { name: "Orange", hex: "#FFA500" },
-  { name: "Purple", hex: "#800080" }, { name: "Brown", hex: "#A52A2A" }, { name: "Gray", hex: "#808080" },
-  { name: "Silver", hex: "#C0C0C0" }, { name: "Gold", hex: "#FFD700" }, { name: "Navy", hex: "#000080" },
-  { name: "Teal", hex: "#008080" }, { name: "Olive", hex: "#808000" }, { name: "Maroon", hex: "#800000" },
-  { name: "Lime", hex: "#00FF00" }, { name: "SkyBlue", hex: "#87CEEB" }, { name: "RoyalBlue", hex: "#4169E1" },
-  { name: "DodgerBlue", hex: "#1E90FF" }, { name: "Turquoise", hex: "#40E0D0" }, { name: "Coral", hex: "#FF7F50" },
-  { name: "Salmon", hex: "#FA8072" }, { name: "Salmon2", hex: "#FF8C69" }, { name: "SandyBrown", hex: "#F4A460" },
-  { name: "Tomato", hex: "#FF6347" }, { name: "Chocolate", hex: "#D2691E" }, { name: "Sienna", hex: "#A0522D" },
-  { name: "Beige", hex: "#F5F5DC" }, { name: "Ivory", hex: "#FFFFF0" }, { name: "Lavender", hex: "#E6E6FA" },
-  { name: "Orchid", hex: "#DA70D6" }, { name: "Violet", hex: "#EE82EE" }, { name: "Plum", hex: "#DDA0DD" },
-  { name: "Crimson", hex: "#DC143C" }, { name: "FireBrick", hex: "#B22222" }, { name: "DarkRed", hex: "#8B0000" },
-  { name: "ForestGreen", hex: "#228B22" }, { name: "SeaGreen", hex: "#2E8B57" }, { name: "MediumSeaGreen", hex: "#3CB371" },
-  { name: "MintCream", hex: "#F5FFFA" }, { name: "MistyRose", hex: "#FFE4E1" }, { name: "PeachPuff", hex: "#FFDAB9" },
-  { name: "PowderBlue", hex: "#B0E0E6" }, { name: "LightBlue", hex: "#ADD8E6" }, { name: "LightGreen", hex: "#90EE90" },
-  { name: "LightPink", hex: "#FFB6C1" }, { name: "LightSalmon", hex: "#FFA07A" }, { name: "DarkBlue", hex: "#00008B" },
-  { name: "Indigo", hex: "#4B0082" }, { name: "RebeccaPurple", hex: "#663399" }, { name: "SteelBlue", hex: "#4682B4" },
-  { name: "SlateGray", hex: "#708090" }, { name: "SlateBlue", hex: "#6A5ACD" }, { name: "CornflowerBlue", hex: "#6495ED" },
-  { name: "CadetBlue", hex: "#5F9EA0" }, { name: "Aqua", hex: "#00FFFF" }, { name: "Azure", hex: "#F0FFFF" },
-  { name: "Aquamarine", hex: "#7FFFD4" }, { name: "Chartreuse", hex: "#7FFF00" }, { name: "LemonChiffon", hex: "#FFFACD" },
-  { name: "Khaki", hex: "#F0E68C" }, { name: "Wheat", hex: "#F5DEB3" }, { name: "NavajoWhite", hex: "#FFDEAD" },
-  /* ---------------- extras / less common names (added later / less likely to be recognized) ---------------- */
-  { name: "Periwinkle", hex: "#CCCCFF" }, { name: "Cerulean", hex: "#007BA7" }, { name: "ElectricBlue", hex: "#7DF9FF" },
-  { name: "TurquoiseBlue", hex: "#00FFEF" }, { name: "TealBlue", hex: "#367588" }, { name: "Mint", hex: "#98FF98" },
-  { name: "CoralPink", hex: "#F88379" }, { name: "Cerise", hex: "#DE3163" }, { name: "Mulberry", hex: "#70193D" },
-  { name: "Ruby", hex: "#E0115F" }, { name: "Burgundy", hex: "#800020" }, { name: "Wine", hex: "#722F37" },
-  { name: "Mahogany", hex: "#C04000" }, { name: "Saffron", hex: "#F4C430" }, { name: "Amber", hex: "#FFBF00" },
-  { name: "Mango", hex: "#FF8243" }, { name: "Mustard", hex: "#FFDB58" }, { name: "Pistachio", hex: "#93C572" },
-  { name: "Matcha", hex: "#A8C25D" }, { name: "ForestFern", hex: "#4F7942" }, { name: "Denim", hex: "#1560BD" },
-  { name: "IndigoDye", hex: "#00416A" }, { name: "Gunmetal", hex: "#2A3439" }, { name: "Charcoal", hex: "#36454F" },
-  { name: "Copper", hex: "#B87333" }, { name: "Bronze", hex: "#CD7F32" }, { name: "CopperRose", hex: "#996666" },
-  { name: "Bone", hex: "#E3DAC9" }, { name: "Oyster", hex: "#E9E4D4" }, { name: "Sandstone", hex: "#786D5F" },
-  { name: "Pebble", hex: "#BDB6B6" }, { name: "SteelGray", hex: "#8A8F8F" }, { name: "IvoryBlack", hex: "#000000" }
+const rounds = ["apple","banana","puzzle"];
+
+const qwerty = [
+  "qwertyuiop".split(""),
+  "asdfghjkl".split(""),
+  "zxcvbnm".split("")
 ];
 
-// ---------- UTILS: color conversions and perceptual distance (Lab) ----------
-function hexToRgb(hex) {
-  hex = hex.replace('#','');
-  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
-  const bigint = parseInt(hex, 16);
-  return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
-}
-// sRGB (0..255) -> linear 0..1
-function srgbToLinear(v) {
-  v = v / 255;
-  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-}
-// linear RGB -> XYZ (D65)
-function rgbToXyz(r, g, b) {
-  const R = srgbToLinear(r);
-  const G = srgbToLinear(g);
-  const B = srgbToLinear(b);
-  // Matrix transform (sRGB D65)
-  const X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
-  const Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
-  const Z = R * 0.0193339 + G * 0.1191920 + B * 0.9503041;
-  return { X: X * 100, Y: Y * 100, Z: Z * 100 };
-}
-// XYZ -> Lab (D65 reference)
-function xyzToLab(X, Y, Z) {
-  // Reference white D65
-  const Xn = 95.047, Yn = 100.0, Zn = 108.883;
-  let x = X / Xn, y = Y / Yn, z = Z / Zn;
-  const f = v => v > 0.008856 ? Math.cbrt(v) : (7.787 * v) + (16/116);
-  const fx = f(x), fy = f(y), fz = f(z);
-  const L = (116 * fy) - 16;
-  const a = 500 * (fx - fy);
-  const b = 200 * (fy - fz);
-  return { L, a, b };
-}
-function hexToLab(hex) {
-  const rgb = hexToRgb(hex);
-  const xyz = rgbToXyz(rgb.r, rgb.g, rgb.b);
-  return xyzToLab(xyz.X, xyz.Y, xyz.Z);
-}
-function deltaELab(lab1, lab2) {
-  const dL = lab1.L - lab2.L;
-  const da = lab1.a - lab2.a;
-  const db = lab1.b - lab2.b;
-  return Math.sqrt(dL*dL + da*da + db*db);
-}
+let level = 0;
+let target = rounds[level];
+let typed = "";
+let wrong = 0;
+let totalInputs = 0; // counts letters typed (never decreases)
+let mapping = identity();
 
-// ---------- prepare allColors with Lab coordinates (preserve original order = commonness order) ----------
-const uniqueByName = (() => {
-  const seen = new Set(), out = [];
-  for (const c of colors) {
-    if (!seen.has(c.name)) { seen.add(c.name); out.push(c); }
+const levelEl = document.getElementById("level");
+const displayEl = document.getElementById("display");
+const messageEl = document.getElementById("message");
+const keyboardEl = document.getElementById("keyboard");
+
+function identity(){
+  let m={};
+  for(let i=97;i<=122;i++){
+    let c=String.fromCharCode(i);
+    m[c]=c;
   }
-  return out;
-})();
-const allColors = uniqueByName.map(c => ({ ...c, lab: hexToLab(c.hex) }));
+  return m;
+}
 
-// ---------- Build a similarity-ordered array (greedy nearest-neighbour path) ----------
-function buildSimilarityOrder(arr) {
-  if (!arr.length) return [];
-  const used = new Array(arr.length).fill(false);
-  const order = [];
-  // start from the first element (preserves commonness as a starting anchor)
-  let currentIndex = 0;
-  order.push(arr[currentIndex]);
-  used[currentIndex] = true;
-  for (let k = 1; k < arr.length; k++) {
-    let nearestIdx = -1;
-    let nearestDist = Infinity;
-    for (let i = 0; i < arr.length; i++) {
-      if (used[i]) continue;
-      const d = deltaELab(arr[currentIndex].lab, arr[i].lab);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearestIdx = i;
+function shuffleMap(){
+  let letters=[];
+  for(let i=97;i<=122;i++) letters.push(String.fromCharCode(i));
+  for(let i=letters.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [letters[i],letters[j]]=[letters[j],letters[i]];
+  }
+  let m={};
+  let idx=0;
+  for(let i=97;i<=122;i++){
+    m[String.fromCharCode(i)] = letters[idx++];
+  }
+  return m;
+}
+
+function render(){
+  levelEl.textContent = `Level ${level+1} — type ${target}`;
+  displayEl.textContent = typed;
+}
+
+function showKeyboard(){
+  keyboardEl.innerHTML="";
+  keyboardEl.style.display="block";
+  qwerty.forEach(r=>{
+    let row=document.createElement("div");
+    row.className="row";
+    r.forEach(k=>{
+      let key=document.createElement("div");
+      key.className="key";
+      key.textContent = mapping[k].toUpperCase();
+      row.appendChild(key);
+    });
+    keyboardEl.appendChild(row);
+  });
+}
+
+function nextLevel(){
+  level++;
+  if(level>=rounds.length){
+    levelEl.textContent="Done. Thank for playing. Unfortunately there is no reward.";
+    keyboardEl.style.display="none";
+    displayEl.textContent="";
+    messageEl.textContent="";
+    return;
+  }
+  target=rounds[level];
+  typed="";
+  wrong=0;
+  totalInputs=0;
+  messageEl.textContent="";
+  keyboardEl.style.display="none";
+  mapping = level===1 ? shuffleMap() : identity();
+  render();
+}
+
+document.addEventListener("keydown",e=>{
+
+  // BACKSPACE
+  if(e.key === "Backspace"){
+    e.preventDefault();
+    if(typed.length > 0){
+      let lastIndex = typed.length - 1;
+      if(typed[lastIndex] !== target[lastIndex]) wrong--;
+      typed = typed.slice(0,-1);
+      render();
+    }
+    return;
+  }
+
+  // LETTERS ONLY
+  if(!/[a-zA-Z]/.test(e.key)) return;
+  e.preventDefault();
+
+  let physical = e.key.toLowerCase();
+  let output = mapping[physical];
+
+  if(level===0) mapping = identity();
+
+  typed += output;
+  totalInputs++;
+
+  if(output !== target[typed.length-1]) wrong++;
+
+  render();
+
+  // ===== LEVEL 2 =====
+  if(level===1){
+
+    // Reveal keyboard after 3 wrong letters
+    if(wrong >= 3 && keyboardEl.style.display === "none"){
+      messageEl.textContent = "you thought it was gonna be that simple?";
+      showKeyboard();
+    }
+
+    // Check using totalInputs (ignores backspace)
+    if(totalInputs >= target.length){
+      if(typed === target){
+        nextLevel();
+      } else {
+        messageEl.textContent = "wrong";
       }
     }
-    if (nearestIdx === -1) break;
-    used[nearestIdx] = true;
-    order.push(arr[nearestIdx]);
-    currentIndex = nearestIdx;
+
+    return;
   }
-  return order;
-}
-const colorsBySimilarity = buildSimilarityOrder(allColors);
-// colorsBySimilarity is now an array arranged so similar colors are adjacent.
-// (We keep allColors untouched so the quiz still uses commonness pools for selecting targets.)
 
-// ---------- UTILS (existing + adapted to Lab distances) ----------
-function sampleRandom(arr, n) {
-  const copy = arr.slice();
-  const out = [];
-  for (let i=0;i<n;i++) {
-    if (copy.length === 0) break;
-    const idx = Math.floor(Math.random()*copy.length);
-    out.push(copy.splice(idx,1)[0]);
+  // ===== LEVEL 3 =====
+  if(level===2){
+    mapping = shuffleMap();
+    showKeyboard();
   }
-  return out;
-}
 
-// determine pool cutoffs by fractions (common -> uncommon)
-const total = allColors.length;
-const easyEnd = Math.max(20, Math.ceil(total * 0.35));      // most common
-const mediumEnd = easyEnd + Math.ceil(total * 0.30);        // moderately common
-const hardEnd = mediumEnd + Math.ceil(total * 0.20);        // less common
-// very hard = remainder
-
-const easyPool = allColors.slice(0, easyEnd);
-const mediumPool = allColors.slice(easyEnd, mediumEnd);
-const hardPool = allColors.slice(mediumEnd, hardEnd);
-const veryHardPool = allColors.slice(hardEnd);
-
-// pick 5 random from each pool (if pool too small, sample with fallback to adjacent pools)
-function pickFromPool(pool, needed, fallbackPools=[]) {
-  const result = [];
-  const poolCopy = pool.slice();
-  while (result.length < needed) {
-    if (poolCopy.length === 0) {
-      // fallback to other pools in order
-      if (fallbackPools.length === 0) break;
-      const nextPool = fallbackPools.shift();
-      poolCopy.push(...nextPool.slice());
-      continue;
+  // Level 1 + Level 3 win condition
+  if(typed.length === target.length){
+    if(typed === target){
+      nextLevel();
+    } else {
+      messageEl.textContent = "wrong";
     }
-    const idx = Math.floor(Math.random() * poolCopy.length);
-    result.push(poolCopy.splice(idx,1)[0]);
-  }
-  return result;
-}
-
-const qEasy = pickFromPool(easyPool, 5, [mediumPool]);
-const qMedium = pickFromPool(mediumPool, 5, [easyPool, hardPool]);
-const qHard = pickFromPool(hardPool, 5, [mediumPool, veryHardPool]);
-const qVery = pickFromPool(veryHardPool, 5, [hardPool, mediumPool]);
-
-// Compose the 20-question sequence: 5 easy, 5 medium, 5 hard, 5 very hard (in that order)
-const questionSequence = [...qEasy, ...qMedium, ...qHard, ...qVery];
-
-// If for any reason we have <20 (rare), fill from overall pool
-if (questionSequence.length < 20) {
-  const fill = sampleRandom(allColors.filter(c => !questionSequence.includes(c)), 20 - questionSequence.length);
-  questionSequence.push(...fill);
-}
-
-// ---------- GAME STATE ----------
-let questionIndex = 0;
-let score = 0;
-let answered = false;
-
-// DOM
-const colorBox = document.getElementById('colorBox');
-const optButtons = [0,1,2,3].map(i => document.getElementById('opt'+i));
-const qLabel = document.getElementById('qLabel');
-const levelLabel = document.getElementById('levelLabel');
-const scoreSpan = document.getElementById('score');
-const nextBtn = document.getElementById('nextBtn');
-const restartBtn = document.getElementById('restartBtn');
-const finalBox = document.getElementById('finalBox');
-const scoreBox = document.getElementById('scoreBox');
-
-function setLevelLabel(idx) {
-  if (idx < 5) return "Easy";
-  if (idx < 10) return "Medium";
-  if (idx < 15) return "Hard";
-  return "Very Hard";
-}
-
-// ---------- makeOptionsForColor now uses perceptual (Lab) distances ----------
-// thresholds in DeltaE (Lab) units (perceptual)
-function makeOptionsForColor(target, difficultyTier) {
-  // difficultyTier: 'easy'|'medium'|'hard'|'very'
-  const pool = allColors.filter(c => c.name !== target.name);
-
-  // Perceptual DeltaE thresholds (empirical)
-  const thresholds = {
-    easy: { min: 100, max: 200 },    // very far (easy to distinguish)
-    medium: { min: 50, max: 150 },   // clearly different but somewhat closer
-    hard: { min: 30,  max: 100 },     // close-ish
-    very: { min: 0,  max: 30 }      // very similar if possible
-  };
-  let t = thresholds[difficultyTier];
-
-  // Find candidates within threshold
-  let candidates = pool.map(c => ({c, d: deltaELab(target.lab, c.lab)}))
-                       .filter(x => x.d >= t.min && x.d <= t.max)
-                       .sort((a,b) => a.d - b.d); // close-first (we may pick closest for hard)
-  // For 'easy' we prefer farthest, so reverse ordering for easy
-  if (difficultyTier === 'easy') candidates.reverse();
-
-  // If not enough candidates, progressively relax thresholds
-  let relaxSteps = 0;
-  const relaxOrder = {
-    easy:   [{min:30,max:200},{min:20,max:200},{min:0,max:200}],
-    medium: [{min:15,max:100},{min:10,max:140},{min:0,max:200}],
-    hard:   [{min:4, max:50},{min:2,max:70},{min:0,max:200}],
-    very:   [{min:0, max:20},{min:0,max:40},{min:0,max:200}]
-  }[difficultyTier];
-
-  while (candidates.length < 3 && relaxSteps < relaxOrder.length) {
-    const r = relaxOrder[relaxSteps];
-    const extra = pool.map(c => ({c, d: deltaELab(target.lab, c.lab)}))
-                      .filter(x => x.d >= r.min && x.d <= r.max && !candidates.find(y=>y.c.name===x.c.name));
-    // merge and re-sort: for easy, farthest first; otherwise close-first
-    candidates.push(...extra);
-    if (difficultyTier === 'easy') candidates.sort((a,b) => b.d - a.d);
-    else candidates.sort((a,b) => a.d - b.d);
-    // deduplicate by name
-    const seen = new Set();
-    candidates = candidates.filter(x => { if (seen.has(x.c.name)) return false; seen.add(x.c.name); return true; });
-    relaxSteps++;
   }
 
-  // If still insufficient, just pick randoms
-  if (candidates.length < 3) {
-    const fallback = sampleRandom(pool, 3 - candidates.length);
-    candidates.push(...fallback.map(c=>({c,d:deltaELab(target.lab,c.lab)})));
-  }
-
-  // Pick first 3 candidates (they are reasonably ranked by closeness/farness)
-  const chosen = candidates.slice(0,3).map(x => x.c);
-
-  // Build options array and shuffle
-  const options = [target, ...chosen];
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
-  return options;
-}
-
-function renderQuestion() {
-  answered = false;
-  nextBtn.disabled = true;
-  finalBox.style.display = 'none';
-  restartBtn.style.display = 'none';
-
-  if (questionIndex >= questionSequence.length) {
-    showFinal();
-    return;
-  }
-
-  const current = questionSequence[questionIndex];
-  colorBox.style.background = current.hex;
-  qLabel.textContent = `Question ${questionIndex + 1} / ${questionSequence.length}`;
-  levelLabel.textContent = setLevelLabel(questionIndex);
-  // determine difficulty tier string
-  const tier = questionIndex < 5 ? 'easy' : questionIndex < 10 ? 'medium' : questionIndex < 15 ? 'hard' : 'very';
-
-  const opts = makeOptionsForColor(current, tier);
-  opts.forEach((o, i) => {
-    const btn = optButtons[i];
-    btn.textContent = o.name;
-    btn.dataset.name = o.name;
-    btn.dataset.hex = o.hex;
-    btn.className = 'option-btn';
-    btn.disabled = false;
-    btn.onclick = () => onAnswer(o.name, btn);
-  });
-
-  // clear any remaining buttons (in case)
-  for (let i = opts.length; i < 4; i++) {
-    optButtons[i].textContent = '';
-    optButtons[i].disabled = true;
-  }
-}
-
-function onAnswer(selectedName, btn) {
-  if (answered) return;
-  answered = true;
-  const current = questionSequence[questionIndex];
-  // reveal results
-  optButtons.forEach(b => b.disabled = true);
-  
-  // determine difficulty tier
-  const tier = questionIndex < 5 ? 'easy' :
-               questionIndex < 10 ? 'medium' :
-               questionIndex < 15 ? 'hard' : 'very';
-
-  if (selectedName === current.name) {
-    score++;
-    btn.classList.add('correct');
-    // increment difficulty-specific counter
-    if (tier === 'easy') correctEasy++;
-    else if (tier === 'medium') correctMedium++;
-    else if (tier === 'hard') correctHard++;
-    else if (tier === 'very') correctVery++;
-  } else {
-    btn.classList.add('wrong');
-    // highlight correct one
-    optButtons.forEach(b => {
-      if (b.dataset.name === current.name) b.classList.add('correct');
-    });
-  }
-
-  scoreSpan.textContent = score;
-  nextBtn.disabled = false;
-  if (questionIndex === questionSequence.length - 1) nextBtn.textContent = 'Finish';
-}
-nextBtn.addEventListener('click', () => {
-  if (!answered) return;
-  questionIndex++;
-  if (questionIndex >= questionSequence.length) {
-    renderQuestion(); // will trigger final
-    return;
-  }
-  // update label and render
-  nextBtn.textContent = 'Next';
-  renderQuestion();
 });
 
-restartBtn.addEventListener('click', () => {
-  // refresh: reshuffle everything and restart
-  location.reload();
-});
-
-function showFinal() {
-  // hide options and next, show final score summary
-  document.getElementById('options').style.display = 'none';
-  document.getElementById('colorBox').style.display = 'none';
-  nextBtn.style.display = 'none';
-  restartBtn.style.display = 'inline-block';
-
-  const pct = Math.round((score / questionSequence.length) * 100);
-  finalBox.style.display = 'block';
-finalBox.innerHTML = `<h2>Quiz Complete</h2>
-  <div style="font-size:1.1rem; margin-top:8px;">Final score: <strong>${score} / ${questionSequence.length}</strong> (${Math.round(score/questionSequence.length*100)}%)</div>
-  <div class="small" style="margin-top:6px; color:#333;">
-    Correct by difficulty:<br>
-    Easy: ${correctEasy} / 5 · 
-    Medium: ${correctMedium} / 5 · 
-    Hard: ${correctHard} / 5 · 
-    Very Hard: ${correctVery} / 5
-  </div>
-  <div class="small" style="margin-top:6px; color:#333;">
-  </div>`;
-  // offer to show a review list of missed questions (optional)
-  scoreBox.textContent = 'Click "Restart Quiz" to play again.';
-}
-
-// initial render
-renderQuestion();
-
-// ---------- Optional: expose colorsBySimilarity for debugging -->
-// console.log('colorsBySimilarity', colorsBySimilarity.map(c=>c.name));
+render();
 </script>
 </body>
 </html>
