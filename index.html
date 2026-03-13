@@ -1,212 +1,365 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Level Game</title>
+<meta charset="utf-8">
+<title>Piano Note Detector</title>
+
 <style>
-  body{
-    margin:0;
-    background:#0b0f1a;
-    color:white;
-    font-family:system-ui, sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-  }
-  .box{
-    text-align:center;
-    width:600px;
-  }
-  .title{
-    font-size:20px;
-    margin-bottom:20px;
-    opacity:.8;
-  }
-  .input{
-    font-size:28px;
-    letter-spacing:6px;
-    margin-bottom:20px;
-    min-height:40px;
-  }
-  .keyboard{margin-top:20px}
-  .row{display:flex;justify-content:center;gap:6px;margin:4px 0}
-  .key{
-    width:34px;
-    height:34px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#111827;
-    border-radius:4px;
-    font-size:14px;
-  }
-  .message{margin-top:15px;color:#ff8c8c}
+
+body{
+margin:0;
+background:#111;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+font-family:Arial;
+}
+
+#container{
+position:relative;
+width:500px;
+height:260px;
+}
+
+#scoreImage{
+position:absolute;
+width:400px;
+top:-160px;
+left:50%;
+transform:translateX(-50%);
+z-index:1;
+opacity: 0.9;
+}
+
+#noteIndicator{
+position:absolute;
+width:50px;
+transform-origin:center center;
+display:none;
+z-index:6;
+}
+
+.idleIndicator{
+position:absolute;
+width:100px;
+transform:translate(-50%,-100%);
+z-index:2;
+
+}
+
+
+
+#piano{
+width:500px;
+height:120px;
+position:absolute;
+bottom:15px;
+left:0;
+transform:perspective(100px) rotateX(20deg) rotate(180deg);
+display:flex;
+z-index:3;
+
+}
+
+.white{
+flex:1;
+height:120px;
+background:rgb(190,190,190);
+border:1px solid black;
+}
+
+.black{
+width:30px;
+height:75px;
+background:black;
+position:absolute;
+top:0;
+z-index:4;
+}
+
+
+
+#indicatorMask{
+position:absolute;
+left:0px;
+top:140px;
+width:500px;
+height:120px;
+overflow:hidden;
+z-index:6;
+}
+
+.active{
+background:grey !important;
+}
+
+#Cs{ left:55px; }
+#Ds{ left:125px; }
+#Fs{ left:265px; }
+#Gs{ left:335px; }
+#As{ left:405px; }
+
 </style>
 </head>
+
 <body>
-<div class="box">
-  <div id="level" class="title"></div>
-  <div id="display" class="input"></div>
-  <div id="message" class="message"></div>
-  <div id="keyboard" class="keyboard" style="display:none"></div>
+
+<div id="container">
+
+<img id="scoreImage" src="image.png">
+
+<img id="idleLeft" class="idleIndicator" src="image4.png">
+<img id="idleRight" class="idleIndicator" src="image3.png">
+
+<div id="indicatorMask">
+<img id="noteIndicator">
+</div>
+
+<div id="piano">
+
+<div class="white" id="C"></div>
+<div class="white" id="D"></div>
+<div class="white" id="E"></div>
+<div class="white" id="F"></div>
+<div class="white" id="G"></div>
+<div class="white" id="A"></div>
+<div class="white" id="B"></div>
+
+<div class="black" id="Cs"></div>
+<div class="black" id="Ds"></div>
+<div class="black" id="Fs"></div>
+<div class="black" id="Gs"></div>
+<div class="black" id="As"></div>
+
+</div>
 </div>
 
 <script>
-const rounds = ["apple","banana","puzzle"];
 
-const qwerty = [
-  "qwertyuiop".split(""),
-  "asdfghjkl".split(""),
-  "zxcvbnm".split("")
-];
+let noteActive=false;
+let currentNote=null;
 
-let level = 0;
-let target = rounds[level];
-let typed = "";
-let wrong = 0;
-let totalInputs = 0; // counts letters typed (never decreases)
-let mapping = identity();
+const MIN_NOTE_DURATION=150;
 
-const levelEl = document.getElementById("level");
-const displayEl = document.getElementById("display");
-const messageEl = document.getElementById("message");
-const keyboardEl = document.getElementById("keyboard");
+let candidateNote=null;
+let candidateStartTime=0;
 
-function identity(){
-  let m={};
-  for(let i=97;i<=122;i++){
-    let c=String.fromCharCode(i);
-    m[c]=c;
-  }
-  return m;
+const indicator=document.getElementById("noteIndicator");
+const idleLeft=document.getElementById("idleLeft");
+const idleRight=document.getElementById("idleRight");
+
+const pianoKeys={
+"C":"C","C#":"Cs","D":"D","D#":"Ds","E":"E",
+"F":"F","F#":"Fs","G":"G","G#":"Gs","A":"A","A#":"As","B":"B"
+};
+
+const keyPositions={
+"C":36,"C#":70,"D":108,"D#":140,"E":180,
+"F":250,"F#":280,"G":322,"G#":350,"A":394,"A#":420,"B":465
+};
+
+const startX_left=370;
+const startY_left=-20;
+const startX_right=150;
+const startY_right=-20;
+
+idleLeft.style.left=startX_left+"px";
+idleLeft.style.top=startY_left+160+"px";
+
+idleRight.style.left=startX_right+"px";
+idleRight.style.top=startY_right+160+"px";
+
+function highlightKey(note){
+
+document.querySelectorAll(".white,.black").forEach(k=>{
+k.classList.remove("active");
+});
+
+if(!note)return;
+
+const id=pianoKeys[note];
+if(id)document.getElementById(id).classList.add("active");
+
 }
 
-function shuffleMap(){
-  let letters=[];
-  for(let i=97;i<=122;i++) letters.push(String.fromCharCode(i));
-  for(let i=letters.length-1;i>0;i--){
-    let j=Math.floor(Math.random()*(i+1));
-    [letters[i],letters[j]]=[letters[j],letters[i]];
-  }
-  let m={};
-  let idx=0;
-  for(let i=97;i<=122;i++){
-    m[String.fromCharCode(i)] = letters[idx++];
-  }
-  return m;
+function showIndicator(note){
+
+const startX_left=370;
+const startY_left=-10;
+
+const startX_right=150;
+const startY_right=-10;
+
+let startX,startY;
+
+if(["F","F#","G","G#","A","A#","B"].includes(note)){
+
+indicator.src="image1.png";
+startX=startX_right;
+startY=startY_right;
+
+idleRight.style.display="none";
+
+}else{
+
+indicator.src="image2.png";
+startX=startX_left;
+startY=startY_left;
+
+idleLeft.style.display="none";
+
 }
 
-function render(){
-  levelEl.textContent = `Level ${level+1} — type ${target}`;
-  displayEl.textContent = typed;
+const endX=500-keyPositions[note];
+const endY=70;
+
+const midX=(startX+endX)/2;
+const midY=(startY+endY)/2;
+
+const dx=endX-startX;
+const dy=endY-startY;
+
+const distance=Math.sqrt(dx*dx+dy*dy);
+const angle=Math.atan2(dy,dx)*180/Math.PI+90;
+
+indicator.style.display="block";
+indicator.style.left=midX+"px";
+indicator.style.top=midY+"px";
+
+indicator.style.height=distance+"px";
+indicator.style.width="75px";
+
+indicator.style.transform=`translate(-50%,-50%) rotate(${angle}deg)`;
+
 }
 
-function showKeyboard(){
-  keyboardEl.innerHTML="";
-  keyboardEl.style.display="block";
-  qwerty.forEach(r=>{
-    let row=document.createElement("div");
-    row.className="row";
-    r.forEach(k=>{
-      let key=document.createElement("div");
-      key.className="key";
-      key.textContent = mapping[k].toUpperCase();
-      row.appendChild(key);
-    });
-    keyboardEl.appendChild(row);
-  });
+function hideIndicator(){
+
+indicator.style.display="none";
+idleLeft.style.display="block";
+idleRight.style.display="block";
+
 }
 
-function nextLevel(){
-  level++;
-  if(level>=rounds.length){
-    levelEl.textContent="Done. Thank for playing. Unfortunately there is no reward.";
-    keyboardEl.style.display="none";
-    displayEl.textContent="";
-    messageEl.textContent="";
-    return;
-  }
-  target=rounds[level];
-  typed="";
-  wrong=0;
-  totalInputs=0;
-  messageEl.textContent="";
-  keyboardEl.style.display="none";
-  mapping = level===1 ? shuffleMap() : identity();
-  render();
+function frequencyToNote(freq){
+
+const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+const A4=440;
+const n=Math.round(12*Math.log2(freq/A4));
+const noteIndex=(n+9+120)%12;
+
+return noteNames[noteIndex];
+
 }
 
-document.addEventListener("keydown",e=>{
+function autoCorrelate(buf,sampleRate){
 
-  // BACKSPACE
-  if(e.key === "Backspace"){
-    e.preventDefault();
-    if(typed.length > 0){
-      let lastIndex = typed.length - 1;
-      if(typed[lastIndex] !== target[lastIndex]) wrong--;
-      typed = typed.slice(0,-1);
-      render();
-    }
-    return;
-  }
+let SIZE=buf.length;
+let rms=0;
 
-  // LETTERS ONLY
-  if(!/[a-zA-Z]/.test(e.key)) return;
-  e.preventDefault();
+for(let i=0;i<SIZE;i++){
+let val=buf[i];
+rms+=val*val;
+}
 
-  let physical = e.key.toLowerCase();
-  let output = mapping[physical];
+rms=Math.sqrt(rms/SIZE);
+if(rms<0.01)return -1;
 
-  if(level===0) mapping = identity();
+let c=new Array(SIZE).fill(0);
 
-  typed += output;
-  totalInputs++;
+for(let i=0;i<SIZE;i++){
+for(let j=0;j<SIZE-i;j++){
+c[i]+=buf[j]*buf[j+i];
+}
+}
 
-  if(output !== target[typed.length-1]) wrong++;
+let d=0;
+while(c[d]>c[d+1])d++;
 
-  render();
+let maxval=-1;
+let maxpos=-1;
 
-  // ===== LEVEL 2 =====
-  if(level===1){
+for(let i=d;i<SIZE;i++){
+if(c[i]>maxval){
+maxval=c[i];
+maxpos=i;
+}
+}
 
-    // Reveal keyboard after 3 wrong letters
-    if(wrong >= 3 && keyboardEl.style.display === "none"){
-      messageEl.textContent = "you thought it was gonna be that simple?";
-      showKeyboard();
-    }
+if(maxpos==-1)return -1;
 
-    // Check using totalInputs (ignores backspace)
-    if(totalInputs >= target.length){
-      if(typed === target){
-        nextLevel();
-      } else {
-        messageEl.textContent = "wrong";
-      }
-    }
+return sampleRate/maxpos;
 
-    return;
-  }
+}
 
-  // ===== LEVEL 3 =====
-  if(level===2){
-    mapping = shuffleMap();
-    showKeyboard();
-  }
+navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
 
-  // Level 1 + Level 3 win condition
-  if(typed.length === target.length){
-    if(typed === target){
-      nextLevel();
-    } else {
-      messageEl.textContent = "wrong";
-    }
-  }
+const audioCtx=new AudioContext();
+const source=audioCtx.createMediaStreamSource(stream);
+
+const analyser=audioCtx.createAnalyser();
+analyser.fftSize=2048;
+
+source.connect(analyser);
+
+const buffer=new Float32Array(analyser.fftSize);
+
+function detect(){
+
+requestAnimationFrame(detect);
+
+analyser.getFloatTimeDomainData(buffer);
+
+const freq=autoCorrelate(buffer,audioCtx.sampleRate);
+
+let detectedNote=null;
+
+if(freq!=-1){
+detectedNote=frequencyToNote(freq);
+}
+
+const now=performance.now();
+
+if(detectedNote!==candidateNote){
+candidateNote=detectedNote;
+candidateStartTime=now;
+}
+
+if(candidateNote && (now-candidateStartTime)>MIN_NOTE_DURATION){
+
+if(candidateNote!==currentNote){
+
+currentNote=candidateNote;
+
+highlightKey(currentNote);
+showIndicator(currentNote);
+
+}
+
+noteActive=true;
+
+}else{
+
+if(!candidateNote){
+
+highlightKey(null);
+hideIndicator();
+currentNote=null;
+noteActive=false;
+
+}
+
+}
+
+}
+
+detect();
 
 });
 
-render();
 </script>
+
 </body>
 </html>

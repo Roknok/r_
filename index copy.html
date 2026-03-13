@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Piano Note Detector</title>
+
+<style>
+
+body{
+    margin:0;
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    font-family:Arial;
+}
+
+#container{
+    position:relative;
+    width:500px;
+    height:260px;
+}
+
+/* background score image */
+
+#scoreImage{
+    position:absolute;
+    width:400px;
+    top:-160px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:1;
+}
+
+/* indicator image */
+
+#noteIndicator{
+    position:absolute;
+    width:50px;
+    transform-origin:center center;
+    display:none;
+    z-index:6;
+}
+
+/* idle indicators */
+
+.idleIndicator{
+    position:absolute;
+    width:100px;
+    transform:translate(-50%,-100%);
+    z-index:2;
+}
+
+/* -------- Piano -------- */
+
+#piano{
+    width:500px;
+    height:120px;
+    position:absolute;
+    bottom:0;
+    left:0;
+    transform:rotate(180deg);
+    display:flex;
+    z-index:3;
+}
+
+.white{
+    flex:1;
+    height:120px;
+    background:rgb(190, 190, 190);
+    border:1px solid black;
+}
+
+.black{
+    width:30px;
+    height:75px;
+    background:black;
+    position:absolute;
+    top:0;
+    z-index:4;
+}
+
+#indicatorMask{
+    position:absolute;
+    left:0px;
+    top:140px;
+    width:500px;
+    height:120px;
+    overflow:hidden;
+    z-index:6;
+}
+
+.active{
+    background:grey !important;
+}
+
+/* black key positions */
+
+#Cs{ left:55px; }
+#Ds{ left:125px; }
+#Fs{ left:265px; }
+#Gs{ left:335px; }
+#As{ left:405px; }
+
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+<img id="scoreImage" src="image.png">
+
+<!-- idle indicators -->
+<img id="idleLeft" class="idleIndicator" src="image4.png">
+<img id="idleRight" class="idleIndicator" src="image3.png">
+
+<div id="indicatorMask">
+    <img id="noteIndicator">
+</div>
+
+<div id="piano">
+
+    <div class="white" id="C"></div>
+    <div class="white" id="D"></div>
+    <div class="white" id="E"></div>
+    <div class="white" id="F"></div>
+    <div class="white" id="G"></div>
+    <div class="white" id="A"></div>
+    <div class="white" id="B"></div>
+
+    <div class="black" id="Cs"></div>
+    <div class="black" id="Ds"></div>
+    <div class="black" id="Fs"></div>
+    <div class="black" id="Gs"></div>
+    <div class="black" id="As"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let noteActive = false;
+let currentNote = null;
+
+const indicator = document.getElementById("noteIndicator");
+
+/* idle elements */
+
+const idleLeft = document.getElementById("idleLeft");
+const idleRight = document.getElementById("idleRight");
+
+const pianoKeys = {
+    "C":"C","C#":"Cs","D":"D","D#":"Ds","E":"E",
+    "F":"F","F#":"Fs","G":"G","G#":"Gs","A":"A","A#":"As","B":"B"
+};
+
+const keyPositions = {
+    "C":36,"C#":70,"D":108,"D#":140,"E":180,
+    "F":250,"F#":280,"G":322,"G#":350,"A":394,"A#":420,"B":465
+};
+
+/* place idle indicators */
+
+const startX_left = 370;
+const startY_left = -20;
+
+const startX_right = 150;
+const startY_right = -20;
+
+idleLeft.style.left = startX_left + "px";
+idleLeft.style.top = startY_left + 160 + "px";
+
+idleRight.style.left = startX_right + "px";
+idleRight.style.top = startY_right + 160 + "px";
+
+function highlightKey(note){
+
+    document.querySelectorAll(".white,.black").forEach(k=>{
+        k.classList.remove("active");
+    });
+
+    if(!note) return;
+
+    const id = pianoKeys[note];
+
+    if(id){
+        document.getElementById(id).classList.add("active");
+    }
+
+}
+
+function showIndicator(note){
+
+    const startX_left = 370;
+    const startY_left = -10;
+
+    const startX_right = 150;
+    const startY_right = -10;
+
+    let startX, startY;
+
+    if(["F","F#","G","G#","A","A#","B"].includes(note)){
+
+        indicator.src = "image1.png";
+
+        startX = startX_right;
+        startY = startY_right;
+
+        idleRight.style.display = "none";
+
+    }else{
+
+        indicator.src = "image2.png";
+
+        startX = startX_left;
+        startY = startY_left;
+
+        idleLeft.style.display = "none";
+
+    }
+
+    const endX = 500 - keyPositions[note];
+    const endY = 70;
+
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+
+    const dx = endX - startX;
+    const dy = endY - startY;
+
+    const distance = Math.sqrt(dx*dx + dy*dy);
+
+    const angle = Math.atan2(dy,dx) * 180 / Math.PI + 90;
+
+    indicator.style.display = "block";
+
+    indicator.style.left = midX + "px";
+    indicator.style.top = midY + "px";
+
+    indicator.style.height = distance + "px";
+    indicator.style.width = "75px";
+
+    indicator.style.transform =
+        `translate(-50%,-50%) rotate(${angle}deg)`;
+
+}
+
+function hideIndicator(){
+
+    indicator.style.display = "none";
+
+    idleLeft.style.display = "block";
+    idleRight.style.display = "block";
+
+}
+
+function frequencyToNote(freq){
+
+    const noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+    const A4 = 440;
+    const n = Math.round(12 * Math.log2(freq/A4));
+
+    const noteIndex = (n + 9 + 120) % 12;
+
+    return noteNames[noteIndex];
+
+}
+
+navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+
+    const audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(stream);
+
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+
+    source.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function detect(){
+
+        requestAnimationFrame(detect);
+
+        analyser.getByteFrequencyData(dataArray);
+
+        const sampleRate = audioCtx.sampleRate;
+
+        let noteMap = {};
+
+        for(let i=0;i<bufferLength;i++){
+
+            const amp = dataArray[i];
+            const freq = i * sampleRate / analyser.fftSize;
+
+            const note = frequencyToNote(freq);
+
+            if(!noteMap[note] || noteMap[note].amp < amp){
+                noteMap[note] = {note:note,amp:amp};
+            }
+
+        }
+
+        let notes = Object.values(noteMap);
+
+        notes.sort((a,b)=>b.amp-a.amp);
+
+        const top5 = notes.slice(0,5);
+
+        const threshold = 200;
+
+        const aboveThreshold = top5.filter(n=>n.amp>threshold).length;
+
+        const topNote = top5[0];
+
+        if(topNote){
+
+            const isGreen = (aboveThreshold<=3 && topNote.amp>threshold);
+
+            if(isGreen){
+
+                highlightKey(topNote.note);
+                showIndicator(topNote.note);
+
+                if(!noteActive){
+
+                    console.log("Note START:",topNote.note);
+
+                    noteActive = true;
+                    currentNote = topNote.note;
+
+                }
+
+            }else{
+
+                highlightKey(null);
+                hideIndicator();
+
+                if(noteActive){
+
+                    console.log("Note END:",currentNote);
+
+                    noteActive = false;
+                    currentNote = null;
+
+                }
+
+            }
+
+        }
+
+    }
+
+    detect();
+
+});
+
+</script>
+
+</body>
+</html>
