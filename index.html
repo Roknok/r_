@@ -27,9 +27,9 @@ position:absolute;
 width:400px;
 top:-160px;
 left:50%;
-transform:translateX(-50%);
+transform:translateX(-50%) rotate(0deg);
 z-index:1;
-opacity: 0.9;
+opacity:0.9;
 }
 
 #noteIndicator{
@@ -43,19 +43,13 @@ z-index:6;
 .idleIndicator{
 position:absolute;
 width:100px;
-transform-origin: left top;
+transform-origin:left top;
 transform:translate(-50%,-90%);
 z-index:2;
-
 }
 
-#idleLeft{
-   rotate: 10deg;
-}
-#idleRight{
-   rotate: -10deg;
-}
-
+#idleLeft{ rotate:10deg; }
+#idleRight{ rotate:-10deg; }
 
 #piano{
 width:500px;
@@ -66,7 +60,6 @@ left:0;
 transform:perspective(100px) rotateX(20deg) rotate(180deg);
 display:flex;
 z-index:3;
-
 }
 
 .white{
@@ -84,8 +77,6 @@ position:absolute;
 top:0;
 z-index:4;
 }
-
-
 
 #indicatorMask{
 position:absolute;
@@ -106,6 +97,16 @@ background:grey !important;
 #Fs{ left:265px; }
 #Gs{ left:335px; }
 #As{ left:405px; }
+
+#noteDisplay{
+position:absolute;
+bottom:-100px;
+width:100%;
+text-align:center;
+font-size:60px;
+color:white;
+letter-spacing:2px;
+}
 
 </style>
 </head>
@@ -140,6 +141,9 @@ background:grey !important;
 <div class="black" id="As"></div>
 
 </div>
+
+<div id="noteDisplay">--</div>
+
 </div>
 
 <script>
@@ -155,6 +159,8 @@ let candidateStartTime=0;
 const indicator=document.getElementById("noteIndicator");
 const idleLeft=document.getElementById("idleLeft");
 const idleRight=document.getElementById("idleRight");
+const scoreImage=document.getElementById("scoreImage");
+const noteDisplay=document.getElementById("noteDisplay");
 
 const pianoKeys={
 "C":"C","C#":"Cs","D":"D","D#":"Ds","E":"E",
@@ -192,6 +198,9 @@ if(id)document.getElementById(id).classList.add("active");
 
 function showIndicator(note){
 
+idleLeft.style.display="block";
+idleRight.style.display="block";
+
 const startX_left=370;
 const startY_left=-10;
 
@@ -207,6 +216,7 @@ startX=startX_right;
 startY=startY_right;
 
 idleRight.style.display="none";
+scoreImage.style.transform="translateX(-50%) rotate(2deg)";
 
 }else{
 
@@ -215,6 +225,7 @@ startX=startX_left;
 startY=startY_left;
 
 idleLeft.style.display="none";
+scoreImage.style.transform="translateX(-50%) rotate(-2deg)";
 
 }
 
@@ -246,6 +257,9 @@ function hideIndicator(){
 indicator.style.display="none";
 idleLeft.style.display="block";
 idleRight.style.display="block";
+scoreImage.src="image.png";
+scoreImage.style.transform="translateX(-50%) rotate(0deg)";
+noteDisplay.textContent="--";
 
 }
 
@@ -342,6 +356,8 @@ currentNote=candidateNote;
 
 highlightKey(currentNote);
 showIndicator(currentNote);
+scoreImage.src="happy.png";
+noteDisplay.textContent=currentNote;
 
 }
 
