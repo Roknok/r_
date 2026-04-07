@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Doodle Jump Enhanced</title>
   <style>
     body {
@@ -11,10 +12,13 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      overflow: hidden; /* Prevent bounce scrolling on mobile */
       font-family: Arial, sans-serif;
+      touch-action: none; /* Disables browser-level zoom/scroll gestures */
     }
     #game-container {
       position: relative;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
     canvas { 
       background: #222; 
@@ -25,17 +29,15 @@
       top: 60%;
       left: 50%;
       transform: translate(-50%, -50%);
-      padding: 10px 20px;
-      font-size: 18px;
+      padding: 15px 30px;
+      font-size: 20px;
       background: lime;
       border: none;
       cursor: pointer;
-      display: none; /* Hidden by default */
-      border-radius: 5px;
+      display: none;
+      border-radius: 10px;
       font-weight: bold;
-    }
-    #restart-btn:hover {
-      background: #32cd32;
+      z-index: 10;
     }
   </style>
 </head>
@@ -51,12 +53,23 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const restartBtn = document.getElementById("restart-btn");
 
-canvas.width = 400;
-canvas.height = 600;
+// INTERNAL LOGICAL DIMENSIONS
+// This ensures physics and scoring are identical on all devices
+const LOGIC_W = 400;
+const LOGIC_H = 600;
+
+function resize() {
+  const scale = Math.min((window.innerWidth * 0.9) / LOGIC_W, (window.innerHeight * 0.9) / LOGIC_H);
+  canvas.width = LOGIC_W * scale;
+  canvas.height = LOGIC_H * scale;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0); // Scales all drawing operations automatically
+}
+
+window.addEventListener('resize', resize);
+resize();
 
 let gravity = 0.4;
 let jumpForce = -11;
-
 let gameOver = false;
 let score = 0;
 let lastSpecialScore = 0;
@@ -67,86 +80,80 @@ let platforms = [];
 function createPlatforms() {
   platforms = [];
   platforms.push({ x: 160, y: 540, w: 80, h: 10, type: "safe" });
-
   let lastX = 160;
-
   for (let i = 1; i < 7; i++) {
-    let typeRand = Math.random();
-
-    let p = {
-      x: lastX + (Math.random() * 120 - 60),
-      y: 540 - i * 90,
-      w: 80,
-      h: 10,
-      type: "normal",
-      vx: 0,
-      hits: 0
-    };
-
-    p.x = Math.max(0, Math.min(canvas.width - p.w, p.x));
-    lastX = p.x;
-
-    if (typeRand < 0.25) {
-      p.type = "moving";
-      p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
-    } else if (typeRand < 0.5) {
-      p.type = "break";
-    }
-
+    let p = generatePlatform(540 - i * 90, lastX);
     platforms.push(p);
+    lastX = p.x;
   }
+}
+
+function generatePlatform(y, lastX) {
+  let typeRand = Math.random();
+  let p = {
+    x: lastX + (Math.random() * 120 - 60),
+    y: y,
+    w: 80,
+    h: 10,
+    type: "normal",
+    vx: 0,
+    hits: 0
+  };
+  p.x = Math.max(0, Math.min(LOGIC_W - p.w, p.x));
+  if (typeRand < 0.25) {
+    p.type = "moving";
+    p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
+  } else if (typeRand < 0.5) {
+    p.type = "break";
+  }
+  return p;
 }
 
 createPlatforms();
 
 let keys = {};
 let targetX = null;
-let prevY = player.y;
 
-// input listeners
+// INPUT HANDLING
 document.addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
   if (gameOver && e.key.toLowerCase() === "r") reset();
 });
-
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-// Button listener
-restartBtn.addEventListener("click", reset);
+// Unified Touch/Mouse Logic
+function handleInput(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  // Convert screen pixels back to logical game units
+  const scale = canvas.width / LOGIC_W;
+  targetX = (clientX - rect.left) / scale;
+}
 
-canvas.addEventListener("mousedown", e => {
-  let rect = canvas.getBoundingClientRect();
-  targetX = e.clientX - rect.left;
-});
-
-canvas.addEventListener("mousemove", e => {
-  if (targetX !== null) {
-    let rect = canvas.getBoundingClientRect();
-    targetX = e.clientX - rect.left;
-  }
-});
-
+canvas.addEventListener("touchstart", e => { e.preventDefault(); handleInput(e); }, {passive: false});
+canvas.addEventListener("touchmove", e => { e.preventDefault(); handleInput(e); }, {passive: false});
+canvas.addEventListener("touchend", () => targetX = null);
+canvas.addEventListener("mousedown", handleInput);
+canvas.addEventListener("mousemove", e => { if (targetX !== null) handleInput(e); });
 canvas.addEventListener("mouseup", () => targetX = null);
 
+restartBtn.addEventListener("click", reset);
+
 function reset() {
-  player.x = 180;
-  player.y = 500;
-  player.vy = 0;
-  score = 0;
-  lastSpecialScore = 0;
+  player.x = 180; player.y = 500; player.vy = 0;
+  score = 0; lastSpecialScore = 0;
   gameOver = false;
-  restartBtn.style.display = "none"; // Hide button on reset
+  restartBtn.style.display = "none";
   createPlatforms();
 }
 
 function update() {
   if (gameOver) {
-    restartBtn.style.display = "block"; // Show button on Game Over
+    restartBtn.style.display = "block";
     return;
   }
 
-  prevY = player.y;
-
+  let prevY = player.y;
   const deadzone = 5;
 
   if (keys["arrowleft"] || keys["a"]) player.vx = -5;
@@ -162,28 +169,25 @@ function update() {
   player.x += player.vx;
   player.y += player.vy;
 
-  if (player.x < 0) player.x += canvas.width;
-  if (player.x > canvas.width) player.x -= canvas.width;
+  if (player.x < 0) player.x += LOGIC_W;
+  if (player.x > LOGIC_W) player.x -= LOGIC_W;
 
   platforms.forEach(p => {
     if (p.type === "moving") {
       let speed = 1.5 + score / 2000;
       p.x += p.vx > 0 ? speed : -speed;
-      if (p.x <= 0 || p.x + p.w >= canvas.width) p.vx *= -1;
+      if (p.x <= 0 || p.x + p.w >= LOGIC_W) p.vx *= -1;
     }
   });
 
   platforms.forEach(p => {
-    [-canvas.width, 0, canvas.width].forEach(offset => {
-      if (
-        player.vy > 0 &&
-        player.x + offset < p.x + p.w &&
-        player.x + player.w + offset > p.x &&
-        prevY + player.h >= p.y - 2 &&
-        prevY + player.h <= p.y + 10
-      ) {
+    [-LOGIC_W, 0, LOGIC_W].forEach(offset => {
+      if (player.vy > 0 &&
+          player.x + offset < p.x + p.w &&
+          player.x + player.w + offset > p.x &&
+          prevY + player.h >= p.y - 2 &&
+          prevY + player.h <= p.y + 10) {
         player.vy = jumpForce;
-
         if (p.type === "break") {
           p.hits++;
           if (p.hits >= 2) p.broken = true;
@@ -197,16 +201,16 @@ function update() {
   if (player.y < 250) {
     let diff = 250 - player.y;
     player.y = 250;
-    score += Math.floor(diff);
+    score += Math.floor(diff); // Score is now consistent across resolutions
     platforms.forEach(p => p.y += diff);
   }
 
   platforms.forEach(p => {
-    if (p.y > canvas.height) {
+    if (p.y > LOGIC_H) {
       let ref = platforms[Math.floor(Math.random() * platforms.length)];
       p.y = 0;
       p.x = ref.x + (Math.random() * 100 - 50);
-      p.x = Math.max(0, Math.min(canvas.width - p.w, p.x));
+      p.x = Math.max(0, Math.min(LOGIC_W - p.w, p.x));
       p.hits = 0;
       p.broken = false;
       
@@ -215,26 +219,21 @@ function update() {
         if (p.type === "moving") p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
         lastSpecialScore = score;
       } else {
-        let typeRand = Math.random();
-        if (typeRand < 0.25) {
-          p.type = "moving";
-          p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
-        } else if (typeRand < 0.5) {
-          p.type = "break";
-        } else {
-          p.type = "normal";
-        }
+        let tr = Math.random();
+        if (tr < 0.25) { p.type = "moving"; p.vx = Math.random() < 0.5 ? 1.5 : -1.5; }
+        else if (tr < 0.5) { p.type = "break"; }
+        else { p.type = "normal"; }
       }
     }
   });
 
-  if (player.y > canvas.height) gameOver = true;
+  if (player.y > LOGIC_H) gameOver = true;
 }
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, LOGIC_W, LOGIC_H);
 
-  [-canvas.width, 0, canvas.width].forEach(offset => {
+  [-LOGIC_W, 0, LOGIC_W].forEach(offset => {
     ctx.fillStyle = "lime";
     ctx.fillRect(player.x + offset, player.y, player.w, player.h);
   });
@@ -245,27 +244,23 @@ function draw() {
       let alpha = 1 - p.hits * 0.5;
       ctx.fillStyle = `rgba(255,0,0,${alpha})`;
     } else ctx.fillStyle = "white";
-
     ctx.fillRect(p.x, p.y, p.w, p.h);
   });
 
   ctx.fillStyle = "white";
   ctx.font = "16px Arial";
   ctx.textAlign = "right";
-  ctx.fillText("Score: " + score, canvas.width - 10, 20);
+  ctx.fillText("Score: " + score, LOGIC_W - 10, 30);
 
   if (gameOver) {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+    ctx.fillRect(0, 0, LOGIC_W, LOGIC_H);
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.font = "30px Arial";
-    ctx.fillText("Game Over", canvas.width/2, 220);
-
+    ctx.fillText("Game Over", LOGIC_W/2, 220);
     ctx.font = "20px Arial";
-    ctx.fillText("Score: " + score, canvas.width/2, 260);
-    // Removed the "Press R" text since we have a button now
+    ctx.fillText("Score: " + score, LOGIC_W/2, 260);
   }
 }
 
