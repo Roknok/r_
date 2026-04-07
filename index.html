@@ -1,366 +1,281 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Maze Explorer</title>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
+<head>
+  <meta charset="UTF-8">
+  <title>Doodle Jump Enhanced</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+    #game-container {
+      position: relative;
+    }
+    canvas { 
+      background: #222; 
+      display: block;
+    }
+    #restart-btn {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 20px;
+      font-size: 18px;
+      background: lime;
+      border: none;
+      cursor: pointer;
+      display: none; /* Hidden by default */
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    #restart-btn:hover {
+      background: #32cd32;
+    }
+  </style>
+</head>
+<body>
 
-    <style>
-      body {
-        margin: 0;
-        background: #111;
-        overflow: hidden;
-        font-family: Arial;
-        touch-action: none;
-      }
-      canvas {
-        display: block;
-      }
+<div id="game-container">
+  <canvas id="game"></canvas>
+  <button id="restart-btn">Restart Game</button>
+</div>
 
-      #restartBtn {
-        position: absolute;
-        width: 220px;
-        height: 70px;
-        background: #1e1e1e;
-        color: white;
-        border: 2px solid white;
-        border-radius: 10px;
-        font-size: 26px;
-        cursor: pointer;
-        display: none;
-        z-index: 10;
-      }
-    </style>
-  </head>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const restartBtn = document.getElementById("restart-btn");
 
-  <body>
-    <button id="restartBtn">Restart</button>
+canvas.width = 400;
+canvas.height = 600;
 
-    <script>
-      let cols = 25;
-      let rows = 25;
+let gravity = 0.4;
+let jumpForce = -11;
 
-      let size, offsetX, offsetY;
-      let margin = 80;
+let gameOver = false;
+let score = 0;
+let lastSpecialScore = 0;
 
-      let grid = [];
-      let stack = [];
+let player = { x: 180, y: 500, w: 40, h: 40, vx: 0, vy: 0 };
+let platforms = [];
 
-      let player = { x: 0, y: 0 };
-      let px = 0,
-        py = 0;
+function createPlatforms() {
+  platforms = [];
+  platforms.push({ x: 160, y: 540, w: 80, h: 10, type: "safe" });
 
-      let goal = { x: cols - 1, y: rows - 1 };
+  let lastX = 160;
 
-      let moveDelay = 140;
-      let lastMove = 0;
+  for (let i = 1; i < 7; i++) {
+    let typeRand = Math.random();
 
-      let timerStarted = false;
-      let startTime = 0;
-      let finalTime = 0;
-      let gameFinished = false;
+    let p = {
+      x: lastX + (Math.random() * 120 - 60),
+      y: 540 - i * 90,
+      w: 80,
+      h: 10,
+      type: "normal",
+      vx: 0,
+      hits: 0
+    };
 
-      let path = [];
-      let visitedSet = new Set();
-      let timePerTile = 0;
+    p.x = Math.max(0, Math.min(canvas.width - p.w, p.x));
+    lastX = p.x;
 
-      let touchStartX = 0;
-      let touchStartY = 0;
-      let swipeDir = null;
+    if (typeRand < 0.25) {
+      p.type = "moving";
+      p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
+    } else if (typeRand < 0.5) {
+      p.type = "break";
+    }
 
-      let restartBtn;
+    platforms.push(p);
+  }
+}
 
-      // 🔥 shifting
-      let lastMazeShift = 0;
-      let shiftInterval = 7000; // ✅ FIXED (5 sec)
+createPlatforms();
 
-      class Cell {
-        constructor(x, y) {
-          this.x = x;
-          this.y = y;
-          this.walls = [true, true, true, true];
-          this.visited = false;
-        }
+let keys = {};
+let targetX = null;
+let prevY = player.y;
 
-        show(alpha) {
-          let x = offsetX + this.x * size;
-          let y = offsetY + this.y * size;
+// input listeners
+document.addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+  if (gameOver && e.key.toLowerCase() === "r") reset();
+});
 
-          stroke(255, 255, 255, alpha);
-          strokeWeight(1);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-          if (this.walls[0]) line(x, y, x + size, y);
-          if (this.walls[1]) line(x + size, y, x + size, y + size);
-          if (this.walls[2]) line(x + size, y + size, x, y + size);
-          if (this.walls[3]) line(x, y + size, x, y);
-        }
-      }
+// Button listener
+restartBtn.addEventListener("click", reset);
 
-      function index(x, y) {
-        if (x < 0 || y < 0 || x >= cols || y >= rows) return -1;
-        return x + y * cols;
-      }
+canvas.addEventListener("mousedown", e => {
+  let rect = canvas.getBoundingClientRect();
+  targetX = e.clientX - rect.left;
+});
 
-      function removeWalls(a, b) {
-        let x = a.x - b.x;
-        if (x == 1) {
-          a.walls[3] = false;
-          b.walls[1] = false;
-        }
-        if (x == -1) {
-          a.walls[1] = false;
-          b.walls[3] = false;
-        }
+canvas.addEventListener("mousemove", e => {
+  if (targetX !== null) {
+    let rect = canvas.getBoundingClientRect();
+    targetX = e.clientX - rect.left;
+  }
+});
 
-        let y = a.y - b.y;
-        if (y == 1) {
-          a.walls[0] = false;
-          b.walls[2] = false;
-        }
-        if (y == -1) {
-          a.walls[2] = false;
-          b.walls[0] = false;
-        }
-      }
+canvas.addEventListener("mouseup", () => targetX = null);
 
-      // 🔥 FULL RESET (only for restart button)
-      function generateMaze(startX = 0, startY = 0) {
-        grid = [];
-        stack = [];
-        path = [];
-        visitedSet.clear();
+function reset() {
+  player.x = 180;
+  player.y = 500;
+  player.vy = 0;
+  score = 0;
+  lastSpecialScore = 0;
+  gameOver = false;
+  restartBtn.style.display = "none"; // Hide button on reset
+  createPlatforms();
+}
 
-        buildMaze(startX, startY);
+function update() {
+  if (gameOver) {
+    restartBtn.style.display = "block"; // Show button on Game Over
+    return;
+  }
 
-        player = { x: startX, y: startY };
-        px = startX;
-        py = startY;
+  prevY = player.y;
 
-        goal = { x: cols - 1, y: rows - 1 };
+  const deadzone = 5;
 
-        timerStarted = false;
-        gameFinished = false;
+  if (keys["arrowleft"] || keys["a"]) player.vx = -5;
+  else if (keys["arrowright"] || keys["d"]) player.vx = 5;
+  else if (targetX !== null) {
+    let center = player.x + player.w/2;
+    if (targetX < center - deadzone) player.vx = -5;
+    else if (targetX > center + deadzone) player.vx = 5;
+    else player.vx = 0;
+  } else player.vx = 0;
 
-        path.push({ x: player.x, y: player.y });
-        visitedSet.add(player.x + "," + player.y);
+  player.vy += gravity;
+  player.x += player.vx;
+  player.y += player.vy;
 
-        restartBtn.style.display = "none";
-      }
+  if (player.x < 0) player.x += canvas.width;
+  if (player.x > canvas.width) player.x -= canvas.width;
 
-      // 🔥 ONLY rebuild maze (keep progress)
-      function reshuffleMaze() {
-        let currentX = player.x;
-        let currentY = player.y;
+  platforms.forEach(p => {
+    if (p.type === "moving") {
+      let speed = 1.5 + score / 2000;
+      p.x += p.vx > 0 ? speed : -speed;
+      if (p.x <= 0 || p.x + p.w >= canvas.width) p.vx *= -1;
+    }
+  });
 
-        buildMaze(currentX, currentY);
+  platforms.forEach(p => {
+    [-canvas.width, 0, canvas.width].forEach(offset => {
+      if (
+        player.vy > 0 &&
+        player.x + offset < p.x + p.w &&
+        player.x + player.w + offset > p.x &&
+        prevY + player.h >= p.y - 2 &&
+        prevY + player.h <= p.y + 10
+      ) {
+        player.vy = jumpForce;
 
-        // keep player exactly where they are
-        player.x = currentX;
-        player.y = currentY;
-      }
-
-      // 🔥 shared maze builder
-      function buildMaze(startX, startY) {
-        grid = [];
-        stack = [];
-
-        for (let y = 0; y < rows; y++) {
-          for (let x = 0; x < cols; x++) {
-            grid.push(new Cell(x, y));
-          }
-        }
-
-        let current = grid[index(startX, startY)];
-        current.visited = true;
-        stack.push(current);
-
-        while (stack.length > 0) {
-          let neighbors = [];
-
-          let top = grid[index(current.x, current.y - 1)];
-          let right = grid[index(current.x + 1, current.y)];
-          let bottom = grid[index(current.x, current.y + 1)];
-          let left = grid[index(current.x - 1, current.y)];
-
-          if (top && !top.visited) neighbors.push(top);
-          if (right && !right.visited) neighbors.push(right);
-          if (bottom && !bottom.visited) neighbors.push(bottom);
-          if (left && !left.visited) neighbors.push(left);
-
-          if (neighbors.length > 0) {
-            let next = random(neighbors);
-            next.visited = true;
-
-            stack.push(current);
-            removeWalls(current, next);
-            current = next;
-          } else {
-            current = stack.pop();
-          }
+        if (p.type === "break") {
+          p.hits++;
+          if (p.hits >= 2) p.broken = true;
         }
       }
+    });
+  });
 
-      function setup() {
-        createCanvas(window.innerWidth, window.innerHeight);
+  platforms = platforms.filter(p => !p.broken);
 
-        size = min((width - margin * 2) / cols, (height - margin * 2) / rows);
-        offsetX = (width - cols * size) / 2;
-        offsetY = (height - rows * size) / 2;
+  if (player.y < 250) {
+    let diff = 250 - player.y;
+    player.y = 250;
+    score += Math.floor(diff);
+    platforms.forEach(p => p.y += diff);
+  }
 
-        restartBtn = document.getElementById("restartBtn");
-        restartBtn.onclick = () => generateMaze(0, 0);
-
-        generateMaze();
-      }
-
-      function draw() {
-        background(15);
-
-        // 🔥 reshuffle WITHOUT reset
-        if (!gameFinished && millis() - lastMazeShift > shiftInterval) {
-          reshuffleMaze();
-          lastMazeShift = millis();
-        }
-
-        px = lerp(px, player.x, 0.25);
-        py = lerp(py, player.y, 0.25);
-
-        for (let c of grid) {
-          let d = dist(c.x, c.y, px, py);
-          let alpha = map(d, 0, 8, 255, 0, true);
-          if (alpha > 3) c.show(alpha);
-        }
-
-        let gx = offsetX + goal.x * size;
-        let gy = offsetY + goal.y * size;
-
-        fill(255, 0, 0);
-        noStroke();
-        rect(gx + size * 0.2, gy + size * 0.2, size * 0.6, size * 0.6);
-
-        let sx = offsetX + px * size;
-        let sy = offsetY + py * size;
-
-        fill(0, 255, 150);
-        rect(sx + size * 0.2, sy + size * 0.2, size * 0.6, size * 0.6);
-
-        if (timerStarted && !gameFinished) {
-          let t = (millis() - startTime) / 1000;
-          fill(255);
-          textSize(22);
-          textAlign(RIGHT, TOP);
-          text(t.toFixed(2) + " s", width - 25, 20);
-        }
-
-        if (!gameFinished && dist(px, py, goal.x, goal.y) < 0.2) {
-          finalTime = (millis() - startTime) / 1000;
-          timePerTile = visitedSet.size / finalTime;
-          gameFinished = true;
-        }
-
-        if (!gameFinished) handleMovement();
-
-        if (gameFinished) {
-          drawPath();
-          drawEndScreen();
-
-          restartBtn.style.display = "block";
-
-          // ✅ PERFECT CENTER
-          restartBtn.style.left = width / 2 - 110 + "px";
-          restartBtn.style.top = height / 2 + 80 + "px";
+  platforms.forEach(p => {
+    if (p.y > canvas.height) {
+      let ref = platforms[Math.floor(Math.random() * platforms.length)];
+      p.y = 0;
+      p.x = ref.x + (Math.random() * 100 - 50);
+      p.x = Math.max(0, Math.min(canvas.width - p.w, p.x));
+      p.hits = 0;
+      p.broken = false;
+      
+      if (score - lastSpecialScore > 1500) {
+        p.type = Math.random() < 0.5 ? "moving" : "break";
+        if (p.type === "moving") p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
+        lastSpecialScore = score;
+      } else {
+        let typeRand = Math.random();
+        if (typeRand < 0.25) {
+          p.type = "moving";
+          p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
+        } else if (typeRand < 0.5) {
+          p.type = "break";
+        } else {
+          p.type = "normal";
         }
       }
+    }
+  });
 
-      function handleMovement() {
-        if (millis() - lastMove < moveDelay) return;
+  if (player.y > canvas.height) gameOver = true;
+}
 
-        let current = grid[index(player.x, player.y)];
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (keyIsDown(87) && !current.walls[0]) {
-          player.y--;
-          recordStep();
-        } else if (keyIsDown(83) && !current.walls[2]) {
-          player.y++;
-          recordStep();
-        } else if (keyIsDown(65) && !current.walls[3]) {
-          player.x--;
-          recordStep();
-        } else if (keyIsDown(68) && !current.walls[1]) {
-          player.x++;
-          recordStep();
-        }
+  [-canvas.width, 0, canvas.width].forEach(offset => {
+    ctx.fillStyle = "lime";
+    ctx.fillRect(player.x + offset, player.y, player.w, player.h);
+  });
 
-        if (swipeDir) {
-          if (swipeDir === "UP" && !current.walls[0]) player.y--;
-          else if (swipeDir === "DOWN" && !current.walls[2]) player.y++;
-          else if (swipeDir === "LEFT" && !current.walls[3]) player.x--;
-          else if (swipeDir === "RIGHT" && !current.walls[1]) player.x++;
-          swipeDir = null;
-          recordStep();
-        }
-      }
+  platforms.forEach(p => {
+    if (p.type === "moving") ctx.fillStyle = "orange";
+    else if (p.type === "break") {
+      let alpha = 1 - p.hits * 0.5;
+      ctx.fillStyle = `rgba(255,0,0,${alpha})`;
+    } else ctx.fillStyle = "white";
 
-      function recordStep() {
-        lastMove = millis();
-        if (!timerStarted) {
-          timerStarted = true;
-          startTime = millis();
-        }
-        path.push({ x: player.x, y: player.y });
-        visitedSet.add(player.x + "," + player.y);
-      }
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+  });
 
-      function drawPath() {
-        stroke(255, 0, 0);
-        strokeWeight(size * 0.2);
-        noFill();
+  ctx.fillStyle = "white";
+  ctx.font = "16px Arial";
+  ctx.textAlign = "right";
+  ctx.fillText("Score: " + score, canvas.width - 10, 20);
 
-        beginShape();
-        for (let p of path) {
-          let x = offsetX + p.x * size + size / 2;
-          let y = offsetY + p.y * size + size / 2;
-          vertex(x, y);
-        }
-        endShape();
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        strokeWeight(1);
-      }
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.font = "30px Arial";
+    ctx.fillText("Game Over", canvas.width/2, 220);
 
-      function drawEndScreen() {
-        fill(0, 200);
-        rect(0, 0, width, height);
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, canvas.width/2, 260);
+    // Removed the "Press R" text since we have a button now
+  }
+}
 
-        fill(255);
-        textAlign(CENTER, CENTER);
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
 
-        textSize(50);
-        text("Maze Complete!", width / 2, height / 2 - 110);
-
-        textSize(32);
-        text(
-          "Time: " + finalTime.toFixed(2) + " s",
-          width / 2,
-          height / 2 - 40,
-        );
-
-        textSize(24);
-        text("Path length: " + visitedSet.size, width / 2, height / 2 + 5);
-
-        text(
-          "Distance / Second: " + timePerTile.toFixed(2),
-          width / 2,
-          height / 2 + 40,
-        );
-      }
-
-      function windowResized() {
-        resizeCanvas(window.innerWidth, window.innerHeight);
-
-        size = min((width - margin * 2) / cols, (height - margin * 2) / rows);
-        offsetX = (width - cols * size) / 2;
-        offsetY = (height - rows * size) / 2;
-      }
-    </script>
-  </body>
+loop();
+</script>
+</body>
 </html>
