@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Doodle Jump Enhanced</title>
+  <title>Doodle Jump HD</title>
   <style>
     body {
       margin: 0;
@@ -12,17 +12,22 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden; /* Prevent bounce scrolling on mobile */
-      font-family: Arial, sans-serif;
-      touch-action: none; /* Disables browser-level zoom/scroll gestures */
+      overflow: hidden;
+      font-family: sans-serif;
+      touch-action: none;
     }
     #game-container {
       position: relative;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     canvas { 
       background: #222; 
       display: block;
+      /* Smooths out scaling in some browsers */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
     #restart-btn {
       position: absolute;
@@ -38,6 +43,7 @@
       border-radius: 10px;
       font-weight: bold;
       z-index: 10;
+      box-shadow: 0 4px 15px rgba(0,255,0,0.3);
     }
   </style>
 </head>
@@ -53,21 +59,32 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const restartBtn = document.getElementById("restart-btn");
 
-// INTERNAL LOGICAL DIMENSIONS
-// This ensures physics and scoring are identical on all devices
 const LOGIC_W = 400;
 const LOGIC_H = 600;
 
 function resize() {
-  const scale = Math.min((window.innerWidth * 0.9) / LOGIC_W, (window.innerHeight * 0.9) / LOGIC_H);
-  canvas.width = LOGIC_W * scale;
-  canvas.height = LOGIC_H * scale;
-  ctx.setTransform(scale, 0, 0, scale, 0, 0); // Scales all drawing operations automatically
+  const dpr = window.devicePixelRatio || 1;
+  const screenW = window.innerWidth * 0.9;
+  const screenH = window.innerHeight * 0.9;
+  
+  const scale = Math.min(screenW / LOGIC_W, screenH / LOGIC_H);
+
+  // Set display size (css pixels)
+  canvas.style.width = (LOGIC_W * scale) + "px";
+  canvas.style.height = (LOGIC_H * scale) + "px";
+
+  // Set actual buffer size (physical pixels) for HD clarity
+  canvas.width = LOGIC_W * scale * dpr;
+  canvas.height = LOGIC_H * scale * dpr;
+
+  // Scale context to match logical units
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
 }
 
 window.addEventListener('resize', resize);
 resize();
 
+// Game State
 let gravity = 0.4;
 let jumpForce = -11;
 let gameOver = false;
@@ -92,12 +109,7 @@ function generatePlatform(y, lastX) {
   let typeRand = Math.random();
   let p = {
     x: lastX + (Math.random() * 120 - 60),
-    y: y,
-    w: 80,
-    h: 10,
-    type: "normal",
-    vx: 0,
-    hits: 0
+    y: y, w: 80, h: 10, type: "normal", vx: 0, hits: 0
   };
   p.x = Math.max(0, Math.min(LOGIC_W - p.w, p.x));
   if (typeRand < 0.25) {
@@ -114,33 +126,41 @@ createPlatforms();
 let keys = {};
 let targetX = null;
 
-// INPUT HANDLING
+// INPUT LISTENERS
 document.addEventListener("keydown", e => {
   keys[e.key.toLowerCase()] = true;
   if (gameOver && e.key.toLowerCase() === "r") reset();
 });
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-// Unified Touch/Mouse Logic
-function handleInput(e) {
+function getLogicalX(clientX) {
   const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  // Convert screen pixels back to logical game units
-  const scale = canvas.width / LOGIC_W;
-  targetX = (clientX - rect.left) / scale;
+  const visualW = parseFloat(canvas.style.width);
+  const scale = visualW / LOGIC_W;
+  return (clientX - rect.left) / scale;
 }
 
-canvas.addEventListener("touchstart", e => { e.preventDefault(); handleInput(e); }, {passive: false});
-canvas.addEventListener("touchmove", e => { e.preventDefault(); handleInput(e); }, {passive: false});
-canvas.addEventListener("touchend", () => targetX = null);
-canvas.addEventListener("mousedown", handleInput);
-canvas.addEventListener("mousemove", e => { if (targetX !== null) handleInput(e); });
-canvas.addEventListener("mouseup", () => targetX = null);
+// Fixed Input Logic - Prevent multi-firing and speed boosts
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  targetX = getLogicalX(e.touches[0].clientX);
+}, {passive: false});
+
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+  targetX = getLogicalX(e.touches[0].clientX);
+}, {passive: false});
+
+canvas.addEventListener("touchend", () => { targetX = null; });
+
+canvas.addEventListener("mousedown", e => { targetX = getLogicalX(e.clientX); });
+canvas.addEventListener("mousemove", e => { if (targetX !== null) targetX = getLogicalX(e.clientX); });
+window.addEventListener("mouseup", () => { targetX = null; });
 
 restartBtn.addEventListener("click", reset);
 
 function reset() {
-  player.x = 180; player.y = 500; player.vy = 0;
+  player.x = 180; player.y = 500; player.vy = 0; player.vx = 0;
   score = 0; lastSpecialScore = 0;
   gameOver = false;
   restartBtn.style.display = "none";
@@ -154,63 +174,67 @@ function update() {
   }
 
   let prevY = player.y;
-  const deadzone = 5;
-
-  if (keys["arrowleft"] || keys["a"]) player.vx = -5;
-  else if (keys["arrowright"] || keys["d"]) player.vx = 5;
-  else if (targetX !== null) {
+  
+  // Horizontal Movement Logic
+  if (keys["arrowleft"] || keys["a"]) {
+    player.vx = -5;
+  } else if (keys["arrowright"] || keys["d"]) {
+    player.vx = 5;
+  } else if (targetX !== null) {
     let center = player.x + player.w/2;
-    if (targetX < center - deadzone) player.vx = -5;
-    else if (targetX > center + deadzone) player.vx = 5;
+    if (targetX < center - 10) player.vx = -5;
+    else if (targetX > center + 10) player.vx = 5;
     else player.vx = 0;
-  } else player.vx = 0;
+  } else {
+    player.vx = 0;
+  }
 
   player.vy += gravity;
   player.x += player.vx;
   player.y += player.vy;
 
-  if (player.x < 0) player.x += LOGIC_W;
-  if (player.x > LOGIC_W) player.x -= LOGIC_W;
+  // Wrap
+  if (player.x < -player.w) player.x = LOGIC_W;
+  if (player.x > LOGIC_W) player.x = -player.w;
 
+  // Platform Logic
   platforms.forEach(p => {
     if (p.type === "moving") {
-      let speed = 1.5 + score / 2000;
+      let speed = 1.5 + score / 5000;
       p.x += p.vx > 0 ? speed : -speed;
       if (p.x <= 0 || p.x + p.w >= LOGIC_W) p.vx *= -1;
     }
-  });
 
-  platforms.forEach(p => {
-    [-LOGIC_W, 0, LOGIC_W].forEach(offset => {
-      if (player.vy > 0 &&
-          player.x + offset < p.x + p.w &&
-          player.x + player.w + offset > p.x &&
-          prevY + player.h >= p.y - 2 &&
-          prevY + player.h <= p.y + 10) {
-        player.vy = jumpForce;
-        if (p.type === "break") {
-          p.hits++;
-          if (p.hits >= 2) p.broken = true;
-        }
+    // Collision
+    if (player.vy > 0 &&
+        player.x < p.x + p.w &&
+        player.x + player.w > p.x &&
+        prevY + player.h >= p.y &&
+        prevY + player.h <= p.y + 15) {
+      player.vy = jumpForce;
+      if (p.type === "break") {
+        p.hits++;
+        if (p.hits >= 2) p.broken = true;
       }
-    });
+    }
   });
 
   platforms = platforms.filter(p => !p.broken);
 
+  // Camera Follow
   if (player.y < 250) {
     let diff = 250 - player.y;
     player.y = 250;
-    score += Math.floor(diff); // Score is now consistent across resolutions
+    score += Math.floor(diff);
     platforms.forEach(p => p.y += diff);
   }
 
+  // Recycling
   platforms.forEach(p => {
     if (p.y > LOGIC_H) {
       let ref = platforms[Math.floor(Math.random() * platforms.length)];
       p.y = 0;
-      p.x = ref.x + (Math.random() * 100 - 50);
-      p.x = Math.max(0, Math.min(LOGIC_W - p.w, p.x));
+      p.x = Math.max(0, Math.min(LOGIC_W - p.w, ref.x + (Math.random() * 200 - 100)));
       p.hits = 0;
       p.broken = false;
       
@@ -220,8 +244,8 @@ function update() {
         lastSpecialScore = score;
       } else {
         let tr = Math.random();
-        if (tr < 0.25) { p.type = "moving"; p.vx = Math.random() < 0.5 ? 1.5 : -1.5; }
-        else if (tr < 0.5) { p.type = "break"; }
+        if (tr < 0.20) { p.type = "moving"; p.vx = Math.random() < 0.5 ? 1.5 : -1.5; }
+        else if (tr < 0.40) { p.type = "break"; }
         else { p.type = "normal"; }
       }
     }
@@ -233,34 +257,37 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, LOGIC_W, LOGIC_H);
 
-  [-LOGIC_W, 0, LOGIC_W].forEach(offset => {
-    ctx.fillStyle = "lime";
-    ctx.fillRect(player.x + offset, player.y, player.w, player.h);
-  });
+  // Player
+  ctx.fillStyle = "lime";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  // Simple wrap ghost drawing
+  if (player.x < 0) ctx.fillRect(player.x + LOGIC_W, player.y, player.w, player.h);
+  if (player.x > LOGIC_W - player.w) ctx.fillRect(player.x - LOGIC_W, player.y, player.w, player.h);
 
+  // Platforms
   platforms.forEach(p => {
     if (p.type === "moving") ctx.fillStyle = "orange";
     else if (p.type === "break") {
-      let alpha = 1 - p.hits * 0.5;
-      ctx.fillStyle = `rgba(255,0,0,${alpha})`;
+      ctx.fillStyle = p.hits === 1 ? "#660000" : "#ff0000";
     } else ctx.fillStyle = "white";
     ctx.fillRect(p.x, p.y, p.w, p.h);
   });
 
+  // Score
   ctx.fillStyle = "white";
-  ctx.font = "16px Arial";
+  ctx.font = "bold 20px Arial";
   ctx.textAlign = "right";
-  ctx.fillText("Score: " + score, LOGIC_W - 10, 30);
+  ctx.fillText("Score: " + score, LOGIC_W - 20, 40);
 
   if (gameOver) {
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
     ctx.fillRect(0, 0, LOGIC_W, LOGIC_H);
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.font = "30px Arial";
+    ctx.font = "bold 40px Arial";
     ctx.fillText("Game Over", LOGIC_W/2, 220);
-    ctx.font = "20px Arial";
-    ctx.fillText("Score: " + score, LOGIC_W/2, 260);
+    ctx.font = "24px Arial";
+    ctx.fillText("Score: " + score, LOGIC_W/2, 270);
   }
 }
 
