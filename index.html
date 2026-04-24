@@ -15,6 +15,11 @@
     top: 0;
     left: 0;
   }
+
+  /* ✅ NEW: disable touch gestures */
+  html, body {
+    touch-action: none;
+  }
 </style>
 </head>
 <body>
@@ -42,10 +47,13 @@ let stains = [];
 
 // ---------------- INPUT ----------------
 canvas.addEventListener("mousedown", handleInput);
+
+// ✅ UPDATED: prevent zoom/scroll on touch
 canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
   const touch = e.touches[0];
   handleInput({ clientX: touch.clientX, clientY: touch.clientY });
-});
+}, { passive: false });
 
 function randomGreen() {
   let g = Math.floor(150 + Math.random() * 100);
@@ -181,7 +189,6 @@ function createStain(x, y, baseHue) {
 
     let length = 30 + Math.random() * 60;
 
-    // ✅ UPDATED: use non-green hue
     let hue = getNonGreenHue(baseHue);
 
     stains.push({
@@ -220,7 +227,7 @@ function drawStains() {
         ? 1 + Math.sin(t2 * Math.PI) * 12
         : 2 + Math.sin(t2 * Math.PI) * 40;
 
-      let alpha = Math.sin(t2 * Math.PI) ;
+      let alpha = Math.sin(t2 * Math.PI);
 
       let color = s.customColor
         ? s.customColor.replace("rgb", "rgba").replace(")", `,${alpha})`)
