@@ -1,299 +1,258 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Doodle Jump HD</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-      font-family: sans-serif;
-      touch-action: none;
-    }
-    #game-container {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    canvas { 
-      background: #222; 
-      display: block;
-      /* Smooths out scaling in some browsers */
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-    }
-    #restart-btn {
-      position: absolute;
-      top: 60%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 15px 30px;
-      font-size: 20px;
-      background: lime;
-      border: none;
-      cursor: pointer;
-      display: none;
-      border-radius: 10px;
-      font-weight: bold;
-      z-index: 10;
-      box-shadow: 0 4px 15px rgba(0,255,0,0.3);
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Curves + Neon Smear</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+  }
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
 </head>
 <body>
 
-<div id="game-container">
-  <canvas id="game"></canvas>
-  <button id="restart-btn">Restart Game</button>
-</div>
+<canvas id="stainCanvas"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const restartBtn = document.getElementById("restart-btn");
 
-const LOGIC_W = 400;
-const LOGIC_H = 600;
+const stainCanvas = document.getElementById("stainCanvas");
+const stainCtx = stainCanvas.getContext("2d");
+
+resize();
+window.addEventListener("resize", resize);
 
 function resize() {
-  const dpr = window.devicePixelRatio || 1;
-  const screenW = window.innerWidth * 0.9;
-  const screenH = window.innerHeight * 0.9;
-  
-  const scale = Math.min(screenW / LOGIC_W, screenH / LOGIC_H);
-
-  // Set display size (css pixels)
-  canvas.style.width = (LOGIC_W * scale) + "px";
-  canvas.style.height = (LOGIC_H * scale) + "px";
-
-  // Set actual buffer size (physical pixels) for HD clarity
-  canvas.width = LOGIC_W * scale * dpr;
-  canvas.height = LOGIC_H * scale * dpr;
-
-  // Scale context to match logical units
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  canvas.width = stainCanvas.width = window.innerWidth;
+  canvas.height = stainCanvas.height = window.innerHeight;
 }
 
-window.addEventListener('resize', resize);
-resize();
+let paths = [];
+let stains = [];
 
-// Game State
-let gravity = 0.4;
-let jumpForce = -11;
-let gameOver = false;
-let score = 0;
-let lastSpecialScore = 0;
-
-let player = { x: 180, y: 500, w: 40, h: 40, vx: 0, vy: 0 };
-let platforms = [];
-
-function createPlatforms() {
-  platforms = [];
-  platforms.push({ x: 160, y: 540, w: 80, h: 10, type: "safe" });
-  let lastX = 160;
-  for (let i = 1; i < 7; i++) {
-    let p = generatePlatform(540 - i * 90, lastX);
-    platforms.push(p);
-    lastX = p.x;
-  }
-}
-
-function generatePlatform(y, lastX) {
-  let typeRand = Math.random();
-  let p = {
-    x: lastX + (Math.random() * 120 - 60),
-    y: y, w: 80, h: 10, type: "normal", vx: 0, hits: 0
-  };
-  p.x = Math.max(0, Math.min(LOGIC_W - p.w, p.x));
-  if (typeRand < 0.25) {
-    p.type = "moving";
-    p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
-  } else if (typeRand < 0.5) {
-    p.type = "break";
-  }
-  return p;
-}
-
-createPlatforms();
-
-let keys = {};
-let targetX = null;
-
-// INPUT LISTENERS
-document.addEventListener("keydown", e => {
-  keys[e.key.toLowerCase()] = true;
-  if (gameOver && e.key.toLowerCase() === "r") reset();
+// ---------------- INPUT ----------------
+canvas.addEventListener("mousedown", handleInput);
+canvas.addEventListener("touchstart", (e) => {
+  const touch = e.touches[0];
+  handleInput({ clientX: touch.clientX, clientY: touch.clientY });
 });
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-function getLogicalX(clientX) {
+function randomGreen() {
+  let g = Math.floor(150 + Math.random() * 100);
+  let r = Math.floor(Math.random() * 60);
+  let b = Math.floor(Math.random() * 60);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// ✅ NEW: avoid green hue range (70°–150°)
+function getNonGreenHue(baseHue) {
+  let variation = (Math.random() - 0.5) * 40;
+  let hue = (baseHue + variation + 360) % 360;
+
+  if (hue >= 70 && hue <= 150) {
+    if (hue < 110) {
+      hue = 70;
+    } else {
+      hue = 150;
+    }
+  }
+
+  return hue;
+}
+
+function handleInput(e) {
   const rect = canvas.getBoundingClientRect();
-  const visualW = parseFloat(canvas.style.width);
-  const scale = visualW / LOGIC_W;
-  return (clientX - rect.left) / scale;
-}
+  const targetX = e.clientX - rect.left;
+  const targetY = e.clientY - rect.top;
 
-// Fixed Input Logic - Prevent multi-firing and speed boosts
-canvas.addEventListener("touchstart", e => {
-  e.preventDefault();
-  targetX = getLogicalX(e.touches[0].clientX);
-}, {passive: false});
+  const startX = targetX;
+  const startY = canvas.height;
 
-canvas.addEventListener("touchmove", e => {
-  e.preventDefault();
-  targetX = getLogicalX(e.touches[0].clientX);
-}, {passive: false});
+  let segments = 40;
+  let points = [];
 
-canvas.addEventListener("touchend", () => { targetX = null; });
+  let amplitude = 20 + Math.random() * 40;
+  let frequency = 1 + Math.random() * 2;
+  let phase = Math.random() * Math.PI * 2;
 
-canvas.addEventListener("mousedown", e => { targetX = getLogicalX(e.clientX); });
-canvas.addEventListener("mousemove", e => { if (targetX !== null) targetX = getLogicalX(e.clientX); });
-window.addEventListener("mouseup", () => { targetX = null; });
+  for (let i = 0; i <= segments; i++) {
+    let t = i / segments;
 
-restartBtn.addEventListener("click", reset);
+    let sway = Math.sin(t * Math.PI * frequency + phase) * amplitude * (1 - t);
 
-function reset() {
-  player.x = 180; player.y = 500; player.vy = 0; player.vx = 0;
-  score = 0; lastSpecialScore = 0;
-  gameOver = false;
-  restartBtn.style.display = "none";
-  createPlatforms();
-}
+    let x = startX + sway;
+    let y = startY + (targetY - startY) * t;
 
-function update() {
-  if (gameOver) {
-    restartBtn.style.display = "block";
-    return;
+    points.push({ x, y });
   }
 
-  let prevY = player.y;
-  
-  // Horizontal Movement Logic
-  if (keys["arrowleft"] || keys["a"]) {
-    player.vx = -5;
-  } else if (keys["arrowright"] || keys["d"]) {
-    player.vx = 5;
-  } else if (targetX !== null) {
-    let center = player.x + player.w/2;
-    if (targetX < center - 10) player.vx = -5;
-    else if (targetX > center + 10) player.vx = 5;
-    else player.vx = 0;
-  } else {
-    player.vx = 0;
-  }
+  let spawnMid = Math.random() < 0.5;
+  let midIndex = Math.floor((0.3 + Math.random() * 0.4) * segments);
 
-  player.vy += gravity;
-  player.x += player.vx;
-  player.y += player.vy;
+  let baseHue = Math.random() * 360;
 
-  // Wrap
-  if (player.x < -player.w) player.x = LOGIC_W;
-  if (player.x > LOGIC_W) player.x = -player.w;
-
-  // Platform Logic
-  platforms.forEach(p => {
-    if (p.type === "moving") {
-      let speed = 1.5 + score / 5000;
-      p.x += p.vx > 0 ? speed : -speed;
-      if (p.x <= 0 || p.x + p.w >= LOGIC_W) p.vx *= -1;
-    }
-
-    // Collision
-    if (player.vy > 0 &&
-        player.x < p.x + p.w &&
-        player.x + player.w > p.x &&
-        prevY + player.h >= p.y &&
-        prevY + player.h <= p.y + 15) {
-      player.vy = jumpForce;
-      if (p.type === "break") {
-        p.hits++;
-        if (p.hits >= 2) p.broken = true;
-      }
-    }
+  paths.push({
+    points,
+    progress: 0,
+    done: false,
+    targetX,
+    targetY,
+    startColor: randomGreen(),
+    endColor: randomGreen(),
+    spawnMid,
+    midIndex,
+    midDone: false,
+    baseHue
   });
+}
 
-  platforms = platforms.filter(p => !p.broken);
+// ---------------- DRAW MAIN LINE ----------------
+function drawPath(path) {
+  let pts = path.points;
+  let maxIndex = Math.floor(path.progress * (pts.length - 1));
 
-  // Camera Follow
-  if (player.y < 250) {
-    let diff = 250 - player.y;
-    player.y = 250;
-    score += Math.floor(diff);
-    platforms.forEach(p => p.y += diff);
+  if (maxIndex < 2) return;
+
+  let gradient = ctx.createLinearGradient(
+    pts[0].x, pts[0].y,
+    path.targetX, path.targetY
+  );
+
+  gradient.addColorStop(0, path.startColor);
+  gradient.addColorStop(1, path.endColor);
+
+  for (let i = 1; i < maxIndex; i++) {
+    let p1 = pts[i - 1];
+    let p2 = pts[i];
+
+    let t = i / pts.length;
+    let thickness = 6 * (1 - t) + 1;
+
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineWidth = thickness;
+    ctx.strokeStyle = gradient;
+    ctx.stroke();
   }
 
-  // Recycling
-  platforms.forEach(p => {
-    if (p.y > LOGIC_H) {
-      let ref = platforms[Math.floor(Math.random() * platforms.length)];
-      p.y = 0;
-      p.x = Math.max(0, Math.min(LOGIC_W - p.w, ref.x + (Math.random() * 200 - 100)));
-      p.hits = 0;
-      p.broken = false;
-      
-      if (score - lastSpecialScore > 1500) {
-        p.type = Math.random() < 0.5 ? "moving" : "break";
-        if (p.type === "moving") p.vx = Math.random() < 0.5 ? 1.5 : -1.5;
-        lastSpecialScore = score;
-      } else {
-        let tr = Math.random();
-        if (tr < 0.20) { p.type = "moving"; p.vx = Math.random() < 0.5 ? 1.5 : -1.5; }
-        else if (tr < 0.40) { p.type = "break"; }
-        else { p.type = "normal"; }
-      }
+  if (path.spawnMid && !path.midDone && maxIndex >= path.midIndex) {
+    path.midDone = true;
+
+    let p = pts[path.midIndex];
+    let color = path.startColor;
+    let count = 1 + Math.floor(Math.random() * 2);
+
+    for (let i = 0; i < count; i++) {
+      let angle = (Math.PI / 2) + (Math.random() - 0.5) * 0.4;
+      let length = 60 + Math.random() * 60;
+
+      stains.push({
+        x: p.x,
+        y: p.y,
+        angle,
+        length,
+        progress: 0,
+        speed: 0.015 + Math.random() * 0.015,
+        customColor: color,
+        thin: true
+      });
     }
-  });
-
-  if (player.y > LOGIC_H) gameOver = true;
-}
-
-function draw() {
-  ctx.clearRect(0, 0, LOGIC_W, LOGIC_H);
-
-  // Player
-  ctx.fillStyle = "lime";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  // Simple wrap ghost drawing
-  if (player.x < 0) ctx.fillRect(player.x + LOGIC_W, player.y, player.w, player.h);
-  if (player.x > LOGIC_W - player.w) ctx.fillRect(player.x - LOGIC_W, player.y, player.w, player.h);
-
-  // Platforms
-  platforms.forEach(p => {
-    if (p.type === "moving") ctx.fillStyle = "orange";
-    else if (p.type === "break") {
-      ctx.fillStyle = p.hits === 1 ? "#660000" : "#ff0000";
-    } else ctx.fillStyle = "white";
-    ctx.fillRect(p.x, p.y, p.w, p.h);
-  });
-
-  // Score
-  ctx.fillStyle = "white";
-  ctx.font = "bold 20px Arial";
-  ctx.textAlign = "right";
-  ctx.fillText("Score: " + score, LOGIC_W - 20, 40);
-
-  if (gameOver) {
-    ctx.fillStyle = "rgba(0,0,0,0.8)";
-    ctx.fillRect(0, 0, LOGIC_W, LOGIC_H);
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = "bold 40px Arial";
-    ctx.fillText("Game Over", LOGIC_W/2, 220);
-    ctx.font = "24px Arial";
-    ctx.fillText("Score: " + score, LOGIC_W/2, 270);
   }
 }
 
+// ---------------- FINAL STAIN ----------------
+function createStain(x, y, baseHue) {
+  let streakCount = 3 + Math.floor(Math.random() * 4);
+
+  for (let i = 0; i < streakCount; i++) {
+    let baseAngle = (i / (streakCount - 1)) * Math.PI;
+    let angle = baseAngle + (Math.random() - 0.5) * 0.5;
+
+    let length = 30 + Math.random() * 60;
+
+    // ✅ UPDATED: use non-green hue
+    let hue = getNonGreenHue(baseHue);
+
+    stains.push({
+      x, y,
+      angle,
+      length,
+      progress: 0,
+      speed: 0.02 + Math.random() * 0.02,
+      hue
+    });
+  }
+}
+
+// ---------------- DRAW STAINS ----------------
+function drawStains() {
+  for (let s of stains) {
+    if (s.progress >= 1) continue;
+
+    let prev = s.progress;
+    s.progress += s.speed;
+    if (s.progress > 1) s.progress = 1;
+
+    let steps = 20;
+
+    for (let i = 0; i < steps; i++) {
+      let t1 = prev + (s.progress - prev) * (i / steps);
+      let t2 = prev + (s.progress - prev) * ((i + 1) / steps);
+
+      let x1 = s.x + Math.cos(s.angle) * s.length * t1;
+      let y1 = s.y - Math.sin(s.angle) * s.length * t1;
+
+      let x2 = s.x + Math.cos(s.angle) * s.length * t2;
+      let y2 = s.y - Math.sin(s.angle) * s.length * t2;
+
+      let width = s.thin
+        ? 1 + Math.sin(t2 * Math.PI) * 12
+        : 2 + Math.sin(t2 * Math.PI) * 40;
+
+      let alpha = Math.sin(t2 * Math.PI) ;
+
+      let color = s.customColor
+        ? s.customColor.replace("rgb", "rgba").replace(")", `,${alpha})`)
+        : `hsla(${s.hue}, 100%, 60%, ${alpha})`;
+
+      stainCtx.beginPath();
+      stainCtx.moveTo(x1, y1);
+      stainCtx.lineTo(x2, y2);
+      stainCtx.lineWidth = width;
+      stainCtx.strokeStyle = color;
+      stainCtx.stroke();
+    }
+  }
+}
+
+// ---------------- LOOP ----------------
 function loop() {
-  update();
-  draw();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let path of paths) {
+    if (path.progress < 1) {
+      path.progress += 0.015;
+      if (path.progress >= 1 && !path.done) {
+        path.done = true;
+        createStain(path.targetX, path.targetY, path.baseHue);
+      }
+    }
+    drawPath(path);
+  }
+
+  drawStains();
+
   requestAnimationFrame(loop);
 }
 
