@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Coloured Rain Paint...</title>
+<title>Coloured Rain Paint</title>
 <style>
   body,html {
     background: rgb(15, 15, 15);
@@ -124,6 +124,7 @@
 let img = null;
 let shapesData = [];
 let drops = [];
+let rainSpeed = 0
 
 const fileInput = document.getElementById("fileInput");
 const canvas = document.getElementById("canvas");
@@ -237,7 +238,7 @@ class Drop{
     if(this.done) return;
 
     if(!this.spreading){
-      this.y += 25;
+      this.y += rainSpeed;;
       drawDrop(this.x, this.y, this.color);
 
       if(this.y >= this.cy){
@@ -279,6 +280,7 @@ async function run(){
   setTimeout(() => {
 
     let k = parseInt(document.getElementById("kInput").value);
+    rainSpeed = Math.max(10, Math.min(35, (k / 700) * 14));
     let POSITION_WEIGHT = parseFloat(document.getElementById("weightInput").value);
 
 let w = img.width;
