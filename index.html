@@ -2,268 +2,399 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Flower grower</title>
+<title>Coloured Rain Paint</title>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #111;
-  }
-  canvas {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
+  body,html {
+    background: rgb(15, 15, 15);
+    color: white;
+    font-family: Arial;
+    text-align: center;
+    display: flex;
+    width:100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
   }
 
-  /* ✅ NEW: disable touch gestures */
-  html, body {
-    touch-action: none;
+  h2 {
+    margin-bottom: 20px;
+  }
+
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    background: #181818;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    width: fit-content;
+  }
+
+  .controls label {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .controls input {
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    background: #222;
+    color: white;
+    width: 80px;
+  }
+
+#fileInput {
+  color: #aaa;
+  font-size: 13px;
+  padding: 10px;
+}
+
+#fileInput::file-selector-button {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-radius: 8px;
+  border: none;
+  background: #2196F3;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: 0.2s;
+}
+
+#fileInput::file-selector-button:hover {
+  background: #42a5f5;
+}
+
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #4CAF50;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background: #66bb6a;
+  }
+
+  canvas {
+    margin-top: 25px;
+    border: 1px solid #444;
+    border-radius: 10px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.6);
+  }
+
+  #loading {
+    margin-top: 10px;
+    opacity: 0.8;
   }
 </style>
 </head>
 <body>
 
-<canvas id="stainCanvas"></canvas>
+<h2>Coloured Rain Paint</h2>
+
+<div class="controls">
+  <input type="file" id="fileInput">
+<span id="fileName" style="font-size:12px; opacity:0.7;"></span>
+  <label>Clusters</label>
+  <input type="number" id="kInput" value="700">
+
+  <label>POSITION_WEIGHT</label>
+  <input type="number" id="weightInput" value="7" step="0.1">
+
+  <button onclick="run()">Run</button>
+</div>
+
+<div id="loading" style="display:none;">Processing...</div>
+
 <canvas id="canvas"></canvas>
 
 <script>
+let img = null;
+let shapesData = [];
+let drops = [];
+
+const fileInput = document.getElementById("fileInput");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const loading = document.getElementById("loading");
 
-const stainCanvas = document.getElementById("stainCanvas");
-const stainCtx = stainCanvas.getContext("2d");
+let paintCanvas = document.createElement("canvas");
+let paintCtx = paintCanvas.getContext("2d");
 
-resize();
-window.addEventListener("resize", resize);
+fileInput.onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-function resize() {
-  canvas.width = stainCanvas.width = window.innerWidth;
-  canvas.height = stainCanvas.height = window.innerHeight;
+  // ✅ show filename
+  document.getElementById("fileName").textContent = file.name;
+
+  const image = new Image();
+  image.onload = () => img = image;
+  image.src = URL.createObjectURL(file);
+};
+
+
+
+function dist(a,b){
+  let d=0;
+  for(let i=0;i<a.length;i++){
+    let t=a[i]-b[i];
+    d+=t*t;
+  }
+  return d;
 }
 
-let paths = [];
-let stains = [];
+function miniBatchKMeans(features, k, maxIter=20, batchSize=10000){
+  let n = features.length;
+  let centroids = [];
 
-// ---------------- INPUT ----------------
-canvas.addEventListener("mousedown", handleInput);
-
-// ✅ UPDATED: prevent zoom/scroll on touch
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  const touch = e.touches[0];
-  handleInput({ clientX: touch.clientX, clientY: touch.clientY });
-}, { passive: false });
-
-function randomGreen() {
-  let g = Math.floor(150 + Math.random() * 100);
-  let r = Math.floor(Math.random() * 60);
-  let b = Math.floor(Math.random() * 60);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-// ✅ NEW: avoid green hue range (70°–150°)
-function getNonGreenHue(baseHue) {
-  let variation = (Math.random() - 0.5) * 40;
-  let hue = (baseHue + variation + 360) % 360;
-
-  if (hue >= 70 && hue <= 150) {
-    if (hue < 110) {
-      hue = 70;
-    } else {
-      hue = 150;
-    }
+  for(let i=0;i<k;i++){
+    centroids.push(features[Math.floor(Math.random()*n)].slice());
   }
 
-  return hue;
-}
+  let counts = Array(k).fill(0);
 
-function handleInput(e) {
-  const rect = canvas.getBoundingClientRect();
-  const targetX = e.clientX - rect.left;
-  const targetY = e.clientY - rect.top;
+  for(let iter=0; iter<maxIter; iter++){
+    for(let b=0; b<batchSize; b++){
+      let idx = Math.floor(Math.random()*n);
+      let x = features[idx];
 
-  const startX = targetX;
-  const startY = canvas.height;
+      let best=0, bestD=1e9;
+      for(let i=0;i<k;i++){
+        let d=dist(x, centroids[i]);
+        if(d<bestD){bestD=d; best=i;}
+      }
 
-  let segments = 40;
-  let points = [];
+      counts[best]++;
+      let lr = 1 / counts[best];
 
-  let amplitude = 20 + Math.random() * 40;
-  let frequency = 1 + Math.random() * 2;
-  let phase = Math.random() * Math.PI * 2;
-
-  for (let i = 0; i <= segments; i++) {
-    let t = i / segments;
-
-    let sway = Math.sin(t * Math.PI * frequency + phase) * amplitude * (1 - t);
-
-    let x = startX + sway;
-    let y = startY + (targetY - startY) * t;
-
-    points.push({ x, y });
-  }
-
-  let spawnMid = Math.random() < 0.5;
-  let midIndex = Math.floor((0.3 + Math.random() * 0.4) * segments);
-
-  let baseHue = Math.random() * 360;
-
-  paths.push({
-    points,
-    progress: 0,
-    done: false,
-    targetX,
-    targetY,
-    startColor: randomGreen(),
-    endColor: randomGreen(),
-    spawnMid,
-    midIndex,
-    midDone: false,
-    baseHue
-  });
-}
-
-// ---------------- DRAW MAIN LINE ----------------
-function drawPath(path) {
-  let pts = path.points;
-  let maxIndex = Math.floor(path.progress * (pts.length - 1));
-
-  if (maxIndex < 2) return;
-
-  let gradient = ctx.createLinearGradient(
-    pts[0].x, pts[0].y,
-    path.targetX, path.targetY
-  );
-
-  gradient.addColorStop(0, path.startColor);
-  gradient.addColorStop(1, path.endColor);
-
-  for (let i = 1; i < maxIndex; i++) {
-    let p1 = pts[i - 1];
-    let p2 = pts[i];
-
-    let t = i / pts.length;
-    let thickness = 6 * (1 - t) + 1;
-
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.lineWidth = thickness;
-    ctx.strokeStyle = gradient;
-    ctx.stroke();
-  }
-
-  if (path.spawnMid && !path.midDone && maxIndex >= path.midIndex) {
-    path.midDone = true;
-
-    let p = pts[path.midIndex];
-    let color = path.startColor;
-    let count = 1 + Math.floor(Math.random() * 2);
-
-    for (let i = 0; i < count; i++) {
-      let angle = (Math.PI / 2) + (Math.random() - 0.5) * 0.4;
-      let length = 60 + Math.random() * 60;
-
-      stains.push({
-        x: p.x,
-        y: p.y,
-        angle,
-        length,
-        progress: 0,
-        speed: 0.015 + Math.random() * 0.015,
-        customColor: color,
-        thin: true
-      });
-    }
-  }
-}
-
-// ---------------- FINAL STAIN ----------------
-function createStain(x, y, baseHue) {
-  let streakCount = 3 + Math.floor(Math.random() * 4);
-
-  for (let i = 0; i < streakCount; i++) {
-    let baseAngle = (i / (streakCount - 1)) * Math.PI;
-    let angle = baseAngle + (Math.random() - 0.5) * 0.5;
-
-    let length = 30 + Math.random() * 60;
-
-    let hue = getNonGreenHue(baseHue);
-
-    stains.push({
-      x, y,
-      angle,
-      length,
-      progress: 0,
-      speed: 0.02 + Math.random() * 0.02,
-      hue
-    });
-  }
-}
-
-// ---------------- DRAW STAINS ----------------
-function drawStains() {
-  for (let s of stains) {
-    if (s.progress >= 1) continue;
-
-    let prev = s.progress;
-    s.progress += s.speed;
-    if (s.progress > 1) s.progress = 1;
-
-    let steps = 20;
-
-    for (let i = 0; i < steps; i++) {
-      let t1 = prev + (s.progress - prev) * (i / steps);
-      let t2 = prev + (s.progress - prev) * ((i + 1) / steps);
-
-      let x1 = s.x + Math.cos(s.angle) * s.length * t1;
-      let y1 = s.y - Math.sin(s.angle) * s.length * t1;
-
-      let x2 = s.x + Math.cos(s.angle) * s.length * t2;
-      let y2 = s.y - Math.sin(s.angle) * s.length * t2;
-
-      let width = s.thin
-        ? 1 + Math.sin(t2 * Math.PI) * 12
-        : 2 + Math.sin(t2 * Math.PI) * 40;
-
-      let alpha = Math.sin(t2 * Math.PI);
-
-      let color = s.customColor
-        ? s.customColor.replace("rgb", "rgba").replace(")", `,${alpha})`)
-        : `hsla(${s.hue}, 100%, 60%, ${alpha})`;
-
-      stainCtx.beginPath();
-      stainCtx.moveTo(x1, y1);
-      stainCtx.lineTo(x2, y2);
-      stainCtx.lineWidth = width;
-      stainCtx.strokeStyle = color;
-      stainCtx.stroke();
-    }
-  }
-}
-
-// ---------------- LOOP ----------------
-function loop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  for (let path of paths) {
-    if (path.progress < 1) {
-      path.progress += 0.015;
-      if (path.progress >= 1 && !path.done) {
-        path.done = true;
-        createStain(path.targetX, path.targetY, path.baseHue);
+      for(let j=0;j<5;j++){
+        centroids[best][j] += lr * (x[j] - centroids[best][j]);
       }
     }
-    drawPath(path);
   }
 
-  drawStains();
-
-  requestAnimationFrame(loop);
+  return centroids;
 }
 
-loop();
+function drawDrop(x, y, color){
+  ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x-3, y+6);
+  ctx.lineTo(x-2, y+12);
+  ctx.lineTo(x+2, y+12);
+  ctx.lineTo(x+3, y+6);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x, y+6, 2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+class Drop{
+  constructor(shape){
+    this.color = shape.color;
+    this.points = shape.points;
+
+    let sumX=0, sumY=0;
+    for(let p of this.points){
+      let x = p % canvas.width;
+      let y = Math.floor(p / canvas.width);
+      sumX += x;
+      sumY += y;
+    }
+
+    this.cx = sumX / this.points.length;
+    this.cy = sumY / this.points.length;
+
+    this.x = this.cx;
+    this.y = 0;
+
+    this.radius = 0;
+    this.spreading = false;
+    this.done = false;
+
+    // ✅ NEW: track which pixels already painted
+    this.painted = new Set();
+  }
+
+  update(){
+    if(this.done) return;
+
+    if(!this.spreading){
+      this.y += 25;
+      drawDrop(this.x, this.y, this.color);
+
+      if(this.y >= this.cy){
+        this.spreading = true;
+      }
+    } else {
+      this.radius += 1;
+
+      paintCtx.fillStyle = `rgb(${this.color[0]},${this.color[1]},${this.color[2]})`;
+
+      // ✅ SAME LOOP — BUT skip already painted pixels
+      for(let id of this.points){
+        if(this.painted.has(id)) continue;
+
+        let x = id % canvas.width;
+        let y = Math.floor(id / canvas.width);
+
+        let dx = x - this.cx;
+        let dy = y - this.cy;
+
+        if(dx*dx + dy*dy <= this.radius*this.radius){
+          paintCtx.fillRect(x, y, 1, 1);
+          this.painted.add(id);
+        }
+      }
+
+      // ✅ done when all pixels painted
+      if(this.painted.size === this.points.length){
+        this.done = true;
+      }
+    }
+  }
+}
+async function run(){
+  if(!img) return alert("Choose an image please —Roknok the great");
+
+  loading.style.display = "block";
+
+  setTimeout(() => {
+
+    let k = parseInt(document.getElementById("kInput").value);
+    let POSITION_WEIGHT = parseFloat(document.getElementById("weightInput").value);
+
+    let w = img.width;
+    let h = img.height;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    paintCanvas.width = w;
+    paintCanvas.height = h;
+    paintCtx.fillStyle = "black";
+    paintCtx.fillRect(0,0,w,h);
+
+    ctx.drawImage(img,0,0);
+
+    let imageData = ctx.getImageData(0,0,w,h);
+    let data = imageData.data;
+
+    let features=[];
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let i=(y*w+x)*4;
+        features.push([
+          (x/w)*POSITION_WEIGHT,
+          (y/h)*POSITION_WEIGHT,
+          data[i]/255,
+          data[i+1]/255,
+          data[i+2]/255
+        ]);
+      }
+    }
+
+    let centroids = miniBatchKMeans(features, k);
+
+    let labels = new Array(features.length);
+
+    for(let i=0;i<features.length;i++){
+      let best=0, bestD=1e9;
+      for(let j=0;j<k;j++){
+        let d=dist(features[i],centroids[j]);
+        if(d<bestD){bestD=d; best=j;}
+      }
+      labels[i]=best;
+    }
+
+    let clusters = Array.from({length:k},()=>[]);
+    for(let i=0;i<labels.length;i++) clusters[labels[i]].push(i);
+
+    shapesData=[];
+
+    for(let c=0;c<k;c++){
+      let pts = clusters[c];
+      if(pts.length<5) continue;
+
+      let r=0,g=0,b=0;
+      for(let id of pts){
+        let i=id*4;
+        r+=data[i]; g+=data[i+1]; b+=data[i+2];
+      }
+
+      r=Math.round(r/pts.length);
+      g=Math.round(g/pts.length);
+      b=Math.round(b/pts.length);
+
+      shapesData.push({
+        color:[r,g,b],
+        points: pts
+      });
+    }
+
+    loading.style.display = "none";
+
+    scaleDisplay();
+    startAnimation();
+
+  }, 50);
+}
+
+function scaleDisplay(){
+  let maxSize = 600;
+  let scale = Math.min(maxSize / canvas.width, maxSize / canvas.height, 1);
+
+  canvas.style.width = (canvas.width * scale) + "px";
+  canvas.style.height = (canvas.height * scale) + "px";
+}
+
+let spawnIndex = 0;
+
+function startAnimation(){
+  drops = [];
+  spawnIndex = 0;
+
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.drawImage(paintCanvas,0,0);
+
+    if(spawnIndex < shapesData.length){
+      drops.push(new Drop(shapesData[spawnIndex]));
+      spawnIndex++;
+    }
+
+    for(let d of drops){
+      d.update();
+    }
+
+    drops = drops.filter(d => !d.done);
+
+    if(spawnIndex < shapesData.length || drops.length > 0){
+      requestAnimationFrame(animate);
+    }
+  }
+
+  animate();
+}
 </script>
+
 </body>
 </html>
