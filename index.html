@@ -281,9 +281,18 @@ async function run(){
     let k = parseInt(document.getElementById("kInput").value);
     let POSITION_WEIGHT = parseFloat(document.getElementById("weightInput").value);
 
-    let w = img.width;
-    let h = img.height;
+let w = img.width;
+let h = img.height;
 
+const MAX_PIXELS = 500000;
+
+let totalPixels = w * h;
+
+if(totalPixels > MAX_PIXELS){
+  let scale = Math.sqrt(MAX_PIXELS / totalPixels);
+  w = Math.floor(w * scale);
+  h = Math.floor(h * scale);
+}
     canvas.width = w;
     canvas.height = h;
 
@@ -292,7 +301,7 @@ async function run(){
     paintCtx.fillStyle = "black";
     paintCtx.fillRect(0,0,w,h);
 
-    ctx.drawImage(img,0,0);
+    ctx.drawImage(img, 0, 0, w, h);
 
     let imageData = ctx.getImageData(0,0,w,h);
     let data = imageData.data;
