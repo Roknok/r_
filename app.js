@@ -22,10 +22,10 @@ const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function restartAnimation(el,className,...removeClasses){
+ // Removing the class and forcing layout gives the browser a clean animation
+ // start even when the same element is animated repeatedly.
  el.classList.remove(className,...removeClasses);
- el.style.animation='none';
  void el.offsetWidth;
- el.style.animation='';
  el.classList.add(className);
 }
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -79,11 +79,12 @@ async function playSimple(){
   const n=Math.floor(Math.random()*37),index=ROULETTE_ORDER.indexOf(n),step=360/ROULETTE_ORDER.length;
   const pocketCenter=-90+(index+.5)*step;
   const currentRotation=Number(pockets.dataset.rotation||0);
-  // The pointer is fixed at 12 o'clock. Align the winning pocket centre
-  // with -90 degrees, taking the wheel's previous spin into account.
-  const currentAngle=((pocketCenter+currentRotation)%360+360)%360;
-  const alignment=(((-90-currentAngle)%360)+360)%360;
-  const targetRotation=currentRotation+360*5+alignment;
+  // SVG angles increase clockwise (the same direction as CSS rotate()).
+  // Compute an absolute final angle so the CENTRE of the winning pocket,
+  // not its right-hand neighbour, ends up directly beneath the 12 o'clock tip.
+  const desiredRotation=-90-pocketCenter;
+  const extraTurns=Math.max(5,Math.ceil((currentRotation+360*5-desiredRotation)/360));
+  const targetRotation=desiredRotation+extraTurns*360;
   pockets.dataset.rotation=String(targetRotation);
   const color=rouletteColor(n),choice=selected.choice||'red';
   pockets.style.transition='none';
