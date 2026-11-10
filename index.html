@@ -1,411 +1,51 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Coloured Rain Paint</title>
-<style>
-  body,html {
-    background: rgb(15, 15, 15);
-    color: white;
-    font-family: Arial;
-    text-align: center;
-    display: flex;
-    width:100%;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-  }
-
-  h2 {
-    margin-bottom: 20px;
-  }
-
-
-  .controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-    background: #181818;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    width: fit-content;
-  }
-
-  .controls label {
-    font-size: 14px;
-    opacity: 0.8;
-  }
-
-  .controls input {
-    padding: 8px;
-    border-radius: 6px;
-    border: none;
-    background: #222;
-    color: white;
-    width: 80px;
-  }
-
-#fileInput {
-  color: #aaa;
-  font-size: 13px;
-  padding: 10px;
-}
-
-#fileInput::file-selector-button {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  border-radius: 8px;
-  border: none;
-  background: #2196F3;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  margin-right: 10px;
-  transition: 0.2s;
-}
-
-#fileInput::file-selector-button:hover {
-  background: #42a5f5;
-}
-
-  button {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 8px;
-    background: #4CAF50;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-
-  button:hover {
-    background: #66bb6a;
-  }
-
-  canvas {
-    margin-top: 25px;
-    border: 1px solid #444;
-    border-radius: 10px;
-    box-shadow: 0 0 25px rgba(0,0,0,0.6);
-  }
-
-  #loading {
-    margin-top: 10px;
-    opacity: 0.8;
-  }
-</style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f6f7fb"><title>Lucky Lounge — Play your luck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="app">
+  <section id="entry-screen" class="entry-screen">
+    <div class="entry-card">
+      <div class="brand-mark">LL</div><p class="eyebrow">A LITTLE GAME OF CHANCE</p>
+      <h1>Lucky <span>Lounge</span></h1><p class="muted entry-copy">Seven games. Two hundred coins. One decision: when to walk away.</p>
+      <form id="entry-form">
+        <label for="player-name">What should we call you?</label>
+        <input id="player-name" maxlength="18" minlength="2" autocomplete="nickname" placeholder="Enter your name" required>
+        <button class="primary full" type="submit">Enter the lounge <span>→</span></button>
+      </form>
+      <div class="entry-foot"><span>✦</span> Start with 200 free coins <span>✦</span></div>
+    </div>
+  </section>
 
-<h2>Coloured Rain Paint</h2>
-
-<div class="controls">
-  <input type="file" id="fileInput">
-<span id="fileName" style="font-size:12px; opacity:0.7;"></span>
-  <label>Clusters</label>
-  <input type="number" id="kInput" value="700">
-
-  <label>POSITION_WEIGHT</label>
-  <input type="number" id="weightInput" value="7" step="0.1">
-
-  <button onclick="run()">Run</button>
+  <main id="game-screen" class="hidden">
+    <header class="topbar">
+      <a class="wordmark" href="#" aria-label="Lucky Lounge home"><span class="brand-mini">LL</span> Lucky Lounge</a>
+      <div class="top-right"><span class="player-pill"><span class="avatar" id="avatar">P</span><span id="player-label">Player</span></span><div class="balance-pill"><span class="coin">●</span><span id="balance">200</span><small>COINS</small></div></div>
+    </header>
+    <div class="layout">
+      <section class="main-column">
+        <div class="welcome-row"><div><p class="eyebrow">YOUR NIGHT, YOUR CALL</p><h2>Choose your game.</h2><p class="muted">Play a little, win a lot, or cash out while you're ahead.</p></div><button id="cashout-top" class="outline cashout">Cash out ↗</button></div>
+        <div id="game-grid" class="game-grid"></div>
+        <section id="play-area" class="play-area hidden">
+          <div class="play-heading"><button id="back-games" class="back-button">← All games</button><span class="game-tag" id="game-tag">GAME</span></div>
+          <div id="game-content"></div>
+        </section>
+        <section class="how-card"><div class="how-icon">✦</div><div><strong>Know when to stop.</strong><p>Your current balance is your score if you cash out. If it reaches zero, your run ends with a score of 0.</p></div></section>
+      </section>
+      <aside class="sidebar">
+        <div class="side-card leaderboard-card"><div class="side-title"><div><p class="eyebrow">THE BIG WINNERS</p><h3>Leaderboard</h3></div><span class="live-dot">GLOBAL</span></div><div id="leaderboard-list" class="leaderboard-list"><div class="loading">Loading scores…</div></div><p id="leaderboard-note" class="side-note">Demo scores are stored on this device.</p></div>
+        <div class="side-card rules-card"><p class="eyebrow">THE HOUSE RULES</p><ul><li>Every run starts with <b>200 coins</b>.</li><li>Choose your wager before each round.</li><li>Games share one coin balance.</li><li>Cash out once to submit your score.</li><li>Reach zero and your run ends.</li></ul></div>
+        <div class="side-bottom">Made for fun · Virtual coins only</div>
+      </aside>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="result-modal" class="modal hidden"><div class="modal-card"><div class="modal-icon" id="modal-icon">✦</div><p class="eyebrow" id="modal-eyebrow">RUN COMPLETE</p><h2 id="modal-title">You cashed out!</h2><div class="final-score" id="final-score">200</div><p class="muted" id="modal-copy">Your score has been submitted.</p><button id="play-again" class="primary full">Back to the entrance</button></div></div>
 </div>
-
-<div id="loading" style="display:none;">Processing...</div>
-
-<canvas id="canvas"></canvas>
-
-<script>
-let img = null;
-let shapesData = [];
-let drops = [];
-let rainSpeed = 0
-
-const fileInput = document.getElementById("fileInput");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const loading = document.getElementById("loading");
-
-let paintCanvas = document.createElement("canvas");
-let paintCtx = paintCanvas.getContext("2d");
-
-fileInput.onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  // ✅ show filename
-  document.getElementById("fileName").textContent = file.name;
-
-  const image = new Image();
-  image.onload = () => img = image;
-  image.src = URL.createObjectURL(file);
-};
-
-
-
-function dist(a,b){
-  let d=0;
-  for(let i=0;i<a.length;i++){
-    let t=a[i]-b[i];
-    d+=t*t;
-  }
-  return d;
-}
-
-function miniBatchKMeans(features, k, maxIter=20, batchSize=10000){
-  let n = features.length;
-  let centroids = [];
-
-  for(let i=0;i<k;i++){
-    centroids.push(features[Math.floor(Math.random()*n)].slice());
-  }
-
-  let counts = Array(k).fill(0);
-
-  for(let iter=0; iter<maxIter; iter++){
-    for(let b=0; b<batchSize; b++){
-      let idx = Math.floor(Math.random()*n);
-      let x = features[idx];
-
-      let best=0, bestD=1e9;
-      for(let i=0;i<k;i++){
-        let d=dist(x, centroids[i]);
-        if(d<bestD){bestD=d; best=i;}
-      }
-
-      counts[best]++;
-      let lr = 1 / counts[best];
-
-      for(let j=0;j<5;j++){
-        centroids[best][j] += lr * (x[j] - centroids[best][j]);
-      }
-    }
-  }
-
-  return centroids;
-}
-
-function drawDrop(x, y, color){
-  ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
-
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x-3, y+6);
-  ctx.lineTo(x-2, y+12);
-  ctx.lineTo(x+2, y+12);
-  ctx.lineTo(x+3, y+6);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(x, y+6, 2, 0, Math.PI*2);
-  ctx.fill();
-}
-
-class Drop{
-  constructor(shape){
-    this.color = shape.color;
-    this.points = shape.points;
-
-    let sumX=0, sumY=0;
-    for(let p of this.points){
-      let x = p % canvas.width;
-      let y = Math.floor(p / canvas.width);
-      sumX += x;
-      sumY += y;
-    }
-
-    this.cx = sumX / this.points.length;
-    this.cy = sumY / this.points.length;
-
-    this.x = this.cx;
-    this.y = 0;
-
-    this.radius = 0;
-    this.spreading = false;
-    this.done = false;
-
-    // ✅ NEW: track which pixels already painted
-    this.painted = new Set();
-  }
-
-  update(){
-    if(this.done) return;
-
-    if(!this.spreading){
-      this.y += rainSpeed;;
-      drawDrop(this.x, this.y, this.color);
-
-      if(this.y >= this.cy){
-        this.spreading = true;
-      }
-    } else {
-      this.radius += 1;
-
-      paintCtx.fillStyle = `rgb(${this.color[0]},${this.color[1]},${this.color[2]})`;
-
-      // ✅ SAME LOOP — BUT skip already painted pixels
-      for(let id of this.points){
-        if(this.painted.has(id)) continue;
-
-        let x = id % canvas.width;
-        let y = Math.floor(id / canvas.width);
-
-        let dx = x - this.cx;
-        let dy = y - this.cy;
-
-        if(dx*dx + dy*dy <= this.radius*this.radius){
-          paintCtx.fillRect(x, y, 1, 1);
-          this.painted.add(id);
-        }
-      }
-
-      // ✅ done when all pixels painted
-      if(this.painted.size === this.points.length){
-        this.done = true;
-      }
-    }
-  }
-}
-async function run(){
-  if(!img) return alert("Choose an image please —Roknok the great");
-
-  loading.style.display = "block";
-
-  setTimeout(() => {
-
-    let k = parseInt(document.getElementById("kInput").value);
-    rainSpeed = Math.max(10, Math.min(35, (k / 700) * 14));
-    let POSITION_WEIGHT = parseFloat(document.getElementById("weightInput").value);
-
-let w = img.width;
-let h = img.height;
-
-const MAX_PIXELS = 500000;
-
-let totalPixels = w * h;
-
-if(totalPixels > MAX_PIXELS){
-  let scale = Math.sqrt(MAX_PIXELS / totalPixels);
-  w = Math.floor(w * scale);
-  h = Math.floor(h * scale);
-}
-    canvas.width = w;
-    canvas.height = h;
-
-    paintCanvas.width = w;
-    paintCanvas.height = h;
-    paintCtx.fillStyle = "black";
-    paintCtx.fillRect(0,0,w,h);
-
-    ctx.drawImage(img, 0, 0, w, h);
-
-    let imageData = ctx.getImageData(0,0,w,h);
-    let data = imageData.data;
-
-    let features=[];
-    for(let y=0;y<h;y++){
-      for(let x=0;x<w;x++){
-        let i=(y*w+x)*4;
-        features.push([
-          (x/w)*POSITION_WEIGHT,
-          (y/h)*POSITION_WEIGHT,
-          data[i]/255,
-          data[i+1]/255,
-          data[i+2]/255
-        ]);
-      }
-    }
-
-    let centroids = miniBatchKMeans(features, k);
-
-    let labels = new Array(features.length);
-
-    for(let i=0;i<features.length;i++){
-      let best=0, bestD=1e9;
-      for(let j=0;j<k;j++){
-        let d=dist(features[i],centroids[j]);
-        if(d<bestD){bestD=d; best=j;}
-      }
-      labels[i]=best;
-    }
-
-    let clusters = Array.from({length:k},()=>[]);
-    for(let i=0;i<labels.length;i++) clusters[labels[i]].push(i);
-
-    shapesData=[];
-
-    for(let c=0;c<k;c++){
-      let pts = clusters[c];
-      if(pts.length<5) continue;
-
-      let r=0,g=0,b=0;
-      for(let id of pts){
-        let i=id*4;
-        r+=data[i]; g+=data[i+1]; b+=data[i+2];
-      }
-
-      r=Math.round(r/pts.length);
-      g=Math.round(g/pts.length);
-      b=Math.round(b/pts.length);
-
-      shapesData.push({
-        color:[r,g,b],
-        points: pts
-      });
-    }
-
-    loading.style.display = "none";
-
-    scaleDisplay();
-    startAnimation();
-
-  }, 50);
-}
-
-function scaleDisplay(){
-  let maxSize = 600;
-  let scale = Math.min(maxSize / canvas.width, maxSize / canvas.height, 1);
-
-  canvas.style.width = (canvas.width * scale) + "px";
-  canvas.style.height = (canvas.height * scale) + "px";
-}
-
-let spawnIndex = 0;
-
-function startAnimation(){
-  drops = [];
-  spawnIndex = 0;
-
-  function animate(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    ctx.drawImage(paintCanvas,0,0);
-
-    if(spawnIndex < shapesData.length){
-      drops.push(new Drop(shapesData[spawnIndex]));
-      spawnIndex++;
-    }
-
-    for(let d of drops){
-      d.update();
-    }
-
-    drops = drops.filter(d => !d.done);
-
-    if(spawnIndex < shapesData.length || drops.length > 0){
-      requestAnimationFrame(animate);
-    }
-  }
-
-  animate();
-}
-</script>
-
-</body>
-</html>
+<script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+</body></html>
