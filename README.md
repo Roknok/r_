@@ -1,47 +1,35 @@
 # Lucky Lounge
 
-A responsive, light-themed virtual casino with seven playable games:
-- Roulette (red/black 1:1, green 14:1)
-- Three-reel slots (three of a kind 5:1, three sevens 10:1, two matching 2:1)
-- Blackjack (win 2:1, natural blackjack 2.5:1, tie returns stake)
-- Dice high/low (2:1)
-- Coin flip (2:1)
-- Crash (cash out before the randomly selected crash point)
-- Lucky number (exact guess 1–10 pays 8:1)
+A minimal yellow-and-green virtual casino with seven games: Roulette, Slot Machine, Blackjack, Dice Duel, Coin Flip, Crash, and Lucky Number.
 
-All games share one 200-coin balance. Cash-out submits one score; zero coins automatically ends the run with score 0. Re-entering starts a fresh run.
+## Rules
+
+- Each new daily run starts with 200 virtual coins.
+- The minimum bet is 10 coins in every game.
+- If your balance falls below 10 coins after a round, you lose for the day and a score of 0 is submitted.
+- Cashing out submits your remaining balance and ends your run for the day.
+- After losing or cashing out, that browser/device shows only the leaderboard until the next local calendar day.
+- For development/debugging only: while the daily lock screen is showing, press **U** ten times to clear the local lock and reload the game.
+
+The daily restriction is stored in that browser's localStorage. It is suitable as a casual device-level restriction, not as an anti-cheat or identity system. Clearing browser storage, using private browsing, or switching browsers/devices can bypass it.
 
 ## Run locally
 
-Open `index.html` in a browser, or serve the folder:
 ```bash
 python3 -m http.server 8000
 ```
+
 Then visit http://localhost:8000.
 
-It works immediately in demo mode. Demo leaderboard data is saved in localStorage and is only visible in the same browser.
+## Supabase leaderboard
 
-## Enable the global leaderboard with Supabase
+1. Create a Supabase project.
+2. Run `supabase.sql` in the Supabase SQL Editor.
+3. In `config.js`, set `SUPABASE_URL` to your project's API URL and `SUPABASE_ANON_KEY` to its **Publishable** key (`sb_publishable_...`). Do not put a database password or Secret key in this file.
+4. Deploy the folder contents to GitHub Pages, Netlify, or another static host.
 
-1. Create a free project at https://supabase.com.
-2. In the SQL Editor, run the contents of `supabase.sql`.
-3. Open `config.js` and set `SUPABASE_URL` and `SUPABASE_ANON_KEY` from Project Settings → API.
-4. Deploy the folder to Netlify, GitHub Pages, or another static host.
-
-### Important fairness/security note
-
-This starter uses a browser-side game engine and submits the final score from the browser. Supabase makes the leaderboard shared globally, but it does **not** make scores cheat-proof: a technically skilled visitor can alter client code or submit a fabricated score. Do not describe this as a secure competitive leaderboard or attach prizes to it. For a tamper-resistant competition, move game state, random outcomes, and score submission into trusted server-side code (for example, Supabase Edge Functions with server-issued run IDs and server-side game actions), and add rate limits / abuse controls.
-
-The SQL enables public score reads and inserts. It includes basic input constraints, but it cannot verify that a score was earned legitimately.
-
-## Deploy free
-
-### Netlify
-Drag the `lucky_lounge` folder into https://app.netlify.com/drop, or connect a GitHub repository containing these files.
-
-### GitHub Pages
-Push the folder contents to a GitHub repository, then enable Pages in Settings → Pages. It is a static site, so no build command is required.
+The publishable key is intended to be used in browser code. Database permissions still need to be configured correctly in Supabase. The game engine and score submission run in the browser, so a technically skilled visitor can manipulate a score. Do not attach real-money prizes or treat this as a secure competition; that requires server-side game logic and score validation.
 
 ## Notes
-- Virtual coins only; no deposits, cash prizes, or real-money gambling.
-- Player names are public on the leaderboard. Tell players not to use sensitive personal information.
+
+Virtual coins only; no deposits or cash prizes. Player names appear publicly on the leaderboard, so players should avoid using sensitive personal information.
