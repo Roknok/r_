@@ -155,8 +155,10 @@ begin
   if auth.uid() is null then raise exception 'You must be signed in.'; end if;
   if p_score < 0 or p_score > 100000000 then raise exception 'Invalid score.'; end if;
 
+  -- The balance saved after the last completed round is authoritative. Do not
+  -- overwrite it with a possibly stale browser value when the run is closed.
   update public.players p
-     set balance = p_score, is_locked = true, last_play_date = v_today
+     set is_locked = true, last_play_date = v_today
    where p.user_id = auth.uid() and p.is_locked = false
    returning p.player_name, p.balance into v_name, v_balance;
   if not found then raise exception 'This run has already been completed.'; end if;

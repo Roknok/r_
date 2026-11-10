@@ -47,3 +47,8 @@ button:active:not(:disabled) { transform: scale(1) !important; }
 .game-card:hover { border-color: #b5ce9c !important; }
 .game-card:before { transition: none !important; }
 .entry-error { min-height: 18px; margin: 8px 0 0; color: #b33b2c; font-size: 12px; font-weight: 700; }
+/* Roulette pocket layout: numbered pockets use the real single-zero wheel order. */
+.roulette-wheel{position:relative;overflow:hidden;background:#202820 !important;border:7px solid #c9a74b;box-shadow:0 0 0 4px #315b2b,0 10px 22px #142b1b35}
+.roulette-pockets{position:absolute;inset:0;width:100%;height:100%;display:block}
+.wheel-center{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);flex:none;border-color:#c9a74b;box-shadow:0 1px 5px #0005}
+.roulette-wheel.spinning{animation:wheelSpin 1.9s cubic-bezier(.12,.72,.12,1) both}
