@@ -2,32 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#f6f8ed"><title>Lucky Lounge</title>
+<meta name="theme-color" content="#f6f8ed"><title>Roknok's Casino</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <div id="app">
   <section id="entry-screen" class="entry-screen">
     <div class="entry-card">
-      <div class="brand-mark">LL</div>
+      <div class="brand-mark">RC</div>
       <p class="eyebrow">ONE RUN. MAKE IT COUNT.</p>
-      <h1>Lucky <span>Lounge</span></h1>
-      <p class="muted entry-copy">Start with 200 coins. Play your way, but know when to stop.</p>
+      <h1>Roknok's <span>Casino</span></h1>
+      <p class="muted entry-copy">Start with 200 coins. Return each new day to collect 100 more.</p>
       <form id="entry-form">
         <label for="player-name">Your name</label>
         <input id="player-name" maxlength="18" minlength="2" autocomplete="nickname" placeholder="Enter your name" required>
         <button class="primary full" type="submit">Start playing <span>→</span></button>
       </form>
-      <p class="entry-foot">200 free coins · Minimum bet 10 coins</p>
+      <p id="entry-error" class="entry-error" role="status"></p><p class="entry-foot">200 starting coins · +100 coins each new day · Minimum bet 10</p>
     </div>
   </section>
 
   <main id="game-screen" class="hidden">
     <div class="shell">
       <div class="game-header">
-        <div><div class="mini-brand">LUCKY LOUNGE</div><h1>Choose your game.</h1></div>
+        <div><div class="mini-brand">ROKNOK'S CASINO</div><h1>Choose your game.</h1></div>
         <div class="player-stats"><span id="player-label">Player</span><strong><span id="balance">200</span> <small>COINS</small></strong><button id="cashout-top" class="cashout">Cash out</button></div>
       </div>
       <section id="game-grid" class="game-grid"></section>
@@ -47,7 +47,7 @@
   <main id="locked-screen" class="locked-screen hidden">
     <section class="leaderboard-card locked-card">
       <div class="lock-symbol">✓</div>
-      <div class="mini-brand">LUCKY LOUNGE</div>
+      <div class="mini-brand">ROKNOK'S CASINO</div>
       <h1>That's it for today.</h1>
       <p class="muted" id="locked-message">Your run is complete. Come back tomorrow.</p>
       <div class="leader-heading"><div><div class="mini-brand">THE TOP SCORES</div><h2>Leaderboard</h2></div><span class="global-pill">GLOBAL</span></div>
@@ -63,5 +63,5 @@
   </div>
   <div id="toast" class="toast" role="status"></div>
 </div>
-<script src="config.js?v=4"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=4"></script>
+<script src="config.js?v=5"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=5"></script>
 </body></html>

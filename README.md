@@ -1,35 +1,37 @@
-# Lucky Lounge
+# Roknok's Casino
 
-A minimal yellow-and-green virtual casino with seven games: Roulette, Slot Machine, Blackjack, Dice Duel, Coin Flip, Crash, and Lucky Number.
+A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase global leaderboard.
 
-## Rules
+## What's included
 
-- Each new daily run starts with 200 virtual coins.
-- The minimum bet is 10 coins in every game.
-- If your balance falls below 10 coins after a round, you lose for the day and a score of 0 is submitted.
-- Cashing out submits your remaining balance and ends your run for the day.
-- After losing or cashing out, that browser/device shows only the leaderboard until the next local calendar day.
-- For development/debugging only: while the daily lock screen is showing, press **U** ten times to clear the local lock and reload the game.
+- Roulette, Slot Machine, Blackjack, Dice Duel, Coin Flip, Crash, and Lucky Number
+- New players start with 200 coins
+- Minimum bet: 10 coins
+- Player names are unique (case-insensitive)
+- Supabase anonymous authentication keeps the same player signed in after a page refresh
+- Player balances are stored in Supabase after every completed round
+- A player can complete one run per India calendar day
+- On the first visit of each new India calendar day, an existing player receives 100 coins; the remaining balance carries over
+- The global leaderboard shows each player's best submitted score
+- Flat buttons, solid-colour surfaces, and restrained hover scaling
 
-The daily restriction is stored in that browser's localStorage. It is suitable as a casual device-level restriction, not as an anti-cheat or identity system. Clearing browser storage, using private browsing, or switching browsers/devices can bypass it.
+## Supabase setup (required for this version)
 
-## Run locally
+1. Open the Supabase project used by this site.
+2. Go to **Authentication → Sign In / Providers** and enable **Anonymous Sign-Ins**.
+3. Open **SQL Editor** and run the complete `supabase.sql` file included in this folder. This upgrades the existing `scores` table and creates the player profile/functions.
+4. Keep the existing `config.js` values for the project's URL and **publishable** key. Do not put a secret key or database password in the website.
+5. Upload all six project files to the GitHub Pages repository and commit/push the changes.
+6. Open the website and hard-refresh (`Ctrl + Shift + R`).
 
-```bash
-python3 -m http.server 8000
-```
+## Player identity note
 
-Then visit http://localhost:8000.
+The anonymous sign-in session is saved in that browser's site storage. Refreshing or reopening the site in the same browser keeps the player's name and balance. Clearing site data, using a private window, or switching browsers/devices creates a different anonymous player. This no-password setup does not provide account recovery across devices.
 
-## Supabase leaderboard
+## Files
 
-1. Create a Supabase project.
-2. Run `supabase.sql` in the Supabase SQL Editor.
-3. In `config.js`, set `SUPABASE_URL` to your project's API URL and `SUPABASE_ANON_KEY` to its **Publishable** key (`sb_publishable_...`). Do not put a database password or Secret key in this file.
-4. Deploy the folder contents to GitHub Pages, Netlify, or another static host.
-
-The publishable key is intended to be used in browser code. Database permissions still need to be configured correctly in Supabase. The game engine and score submission run in the browser, so a technically skilled visitor can manipulate a score. Do not attach real-money prizes or treat this as a secure competition; that requires server-side game logic and score validation.
-
-## Notes
-
-Virtual coins only; no deposits or cash prizes. Player names appear publicly on the leaderboard, so players should avoid using sensitive personal information.
+- `index.html` — page structure
+- `style.css` — styling
+- `app.js` — games, player session, balance persistence, and leaderboard
+- `config.js` — Supabase project URL and publishable key
+- `supabase.sql` — database upgrade and secure RPC functions
