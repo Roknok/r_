@@ -67,21 +67,61 @@ function renderGame(){
 function wireChoices(){document.querySelectorAll('#choices .choice').forEach(b=>b.onclick=()=>{document.querySelectorAll('#choices .choice').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selected.choice=b.dataset.choice})}
 async function playSimple(){
  if(roundLock||ended)return;const wager=bet();if(!wager)return;roundLock=true;$('play').disabled=true;
- if(activeGame==='roulette'){const wheel=$('wheel');wheel.classList.add('spinning');await sleep(1900);const n=Math.floor(Math.random()*37),color=rouletteColor(n),choice=selected.choice||'red';wheel.classList.remove('spinning');$('wheel-number').textContent=n;$('wheel-number').style.background=color==='red'?'#c83b32':color==='black'?'#202820':'#16834b';const payout=choice===color?wager*(color==='green'?14:2):0;await finishRound(wager,payout,`The ball landed on ${n} (${color}). ${payout?`You won ${payout-wager} coins!`:'You lost your bet.'}`,!!payout);return}
- if(activeGame==='slots'){const symbols=['🍒','⭐','🍋','🔔','7️⃣','🍀'],reels=[$('r1'),$('r2'),$('r3')];reels.forEach((el,i)=>{el.classList.add('spinning');el.style.animationDelay=`${i*.12}s`});await sleep(1250);const r=Array.from({length:3},()=>symbols[Math.floor(Math.random()*symbols.length)]);r.forEach((x,i)=>{reels[i].textContent=x;reels[i].classList.remove('spinning');reels[i].classList.add('reveal');setTimeout(()=>reels[i]?.classList.remove('reveal'),500)});let payout=0;if(r.every(x=>x===r[0]))payout=wager*(r[0]==='7️⃣'?10:5);else if(new Set(r).size===2)payout=wager*2;await finishRound(wager,payout,`${r.join('  ')} — ${payout?`Payout ${payout} coins!`:'No match. Better luck next spin.'}`,payout>0);return}
- if(activeGame==='coin'){const face=$('coin-face');face.classList.add('flipping');await sleep(1050);const side=Math.random()<.5?'Heads':'Tails',choice=selected.choice||'Heads';face.classList.remove('flipping');face.textContent=side==='Heads'?'H':'T';face.classList.add('reveal');const payout=side===choice?wager*2:0;await finishRound(wager,payout,`${side}! ${payout?'You called it.':'Not this time.'}`,!!payout);return}
- if(activeGame==='dice'){const face=$('dice-face');face.classList.add('rolling');await sleep(900);const n=1+Math.floor(Math.random()*6),choice=selected.choice||'low';face.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][n-1];face.classList.remove('rolling');face.classList.add('reveal');const win=choice==='high'?n>=4:n<=3,payout=win?wager*2:0;await finishRound(wager,payout,`You rolled ${n}. ${win?'Correct call!':'Wrong call.'}`,win);return}
- if(activeGame==='lucky'){const face=$('lucky-face');face.classList.add('revealing');await sleep(950);const n=1+Math.floor(Math.random()*10),choice=Number(selected.choice||5);face.textContent=n;face.classList.remove('revealing');face.classList.add('reveal');const payout=n===choice?wager*8:0;await finishRound(wager,payout,`The number was ${n}. ${payout?'Perfect guess!':'Not quite.'}`,!!payout);return}
+ if(activeGame==='roulette'){
+  const wheel=$('wheel'),pockets=wheel.querySelector('.roulette-pockets');
+  const n=Math.floor(Math.random()*37),index=ROULETTE_ORDER.indexOf(n),step=360/ROULETTE_ORDER.length;
+  const pocketCenter=-90+(index+.5)*step;
+  const targetRotation=360*5-pocketCenter;
+  const color=rouletteColor(n),choice=selected.choice||'red';
+  pockets.style.transition='transform 2.6s cubic-bezier(.10,.72,.12,1)';
+  pockets.style.transform=`rotate(${targetRotation}deg)`;
+  await sleep(2700);
+  $('wheel-number').textContent=n;
+  $('wheel-number').style.background=color==='red'?'#c83b32':color==='black'?'#202820':'#16834b';
+  const payout=choice===color?wager*(color==='green'?14:2):0;
+  await finishRound(wager,payout,`The ball landed on ${n} (${color}). ${payout?`You won ${payout-wager} coins!`:'You lost your bet.'}`,!!payout);return
+ }
+ if(activeGame==='slots'){
+  const symbols=['🍒','⭐','🍋','🔔','7️⃣','🍀'],reels=[$('r1'),$('r2'),$('r3')];
+  const r=Array.from({length:3},()=>symbols[Math.floor(Math.random()*symbols.length)]);
+  const timers=reels.map((el,i)=>{el.classList.add('spinning');return setInterval(()=>{el.textContent=symbols[Math.floor(Math.random()*symbols.length)]},65+i*12)});
+  for(let i=0;i<reels.length;i++){
+   await sleep(650);
+   clearInterval(timers[i]);reels[i].textContent=r[i];reels[i].classList.remove('spinning');reels[i].classList.add('reveal');
+  }
+  await sleep(350);reels.forEach(el=>el.classList.remove('reveal'));
+  let payout=0;if(r.every(x=>x===r[0]))payout=wager*(r[0]==='7️⃣'?10:5);else if(new Set(r).size===2)payout=wager*2;
+  await finishRound(wager,payout,`${r.join('  ')} — ${payout?`Payout ${payout} coins!`:'No match. Better luck next spin.'}`,payout>0);return
+ }
+ if(activeGame==='coin'){
+  const face=$('coin-face'),side=Math.random()<.5?'Heads':'Tails',choice=selected.choice||'Heads';
+  face.classList.add('flipping');await sleep(1120);face.classList.remove('flipping');
+  face.textContent=side==='Heads'?'H':'T';face.classList.add('reveal');
+  const payout=side===choice?wager*2:0;await finishRound(wager,payout,`${side}! ${payout?'You called it.':'Not this time.'}`,!!payout);return
+ }
+ if(activeGame==='dice'){
+  const face=$('dice-face'),n=1+Math.floor(Math.random()*6),choice=selected.choice||'low';
+  face.classList.add('rolling');await sleep(840);face.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][n-1];
+  face.classList.remove('rolling');face.classList.add('reveal');
+  const win=choice==='high'?n>=4:n<=3,payout=win?wager*2:0;await finishRound(wager,payout,`You rolled ${n}. ${win?'Correct call!':'Wrong call.'}`,win);return
+ }
+ if(activeGame==='lucky'){
+  const face=$('lucky-face'),n=1+Math.floor(Math.random()*10),choice=Number(selected.choice||5);
+  face.classList.add('revealing');await sleep(950);face.textContent=n;
+  face.classList.remove('revealing');face.classList.add('reveal');
+  const payout=n===choice?wager*8:0;await finishRound(wager,payout,`The number was ${n}. ${payout?'Perfect guess!':'Not quite.'}`,!!payout);return
+ }
 }
 const deck=()=>{const suits=['♠','♥','♦','♣'],ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],d=[];for(const s of suits)for(const r of ranks)d.push({s,r});return d.sort(()=>Math.random()-.5)};
 function cardVal(c){return c.r==='A'?11:['K','Q','J'].includes(c.r)?10:Number(c.r)}
 function total(hand){let t=hand.reduce((a,c)=>a+cardVal(c),0),aces=hand.filter(c=>c.r==='A').length;while(t>21&&aces-- >0)t-=10;return t}
 function draw(hand,id){$(id).innerHTML=hand.map(c=>`<div class="playing-card ${['♥','♦'].includes(c.s)?'red':'black'}">${c.r}${c.s}</div>`).join('')}
-async function deal(){if(roundLock||ended)return;const wager=bet();if(!wager)return;roundLock=true;bj={wager,d:deck(),p:[],h:[],done:false};bj.p.push(bj.d.pop(),bj.d.pop());bj.h.push(bj.d.pop(),bj.d.pop());draw(bj.p,'player-cards');draw(bj.h,'dealer-cards');$('player-total').textContent=total(bj.p);$('dealer-total').textContent='Hidden';$('hit').disabled=$('stand').disabled=false;$('deal').disabled=true;if(total(bj.p)===21)await settleBJ()}
+function drawDealerHidden(hand){$('dealer-cards').innerHTML=hand.map((c,i)=>i===1?'<div class="playing-card card-back" aria-label="Hidden card">?</div>':`<div class="playing-card ${['♥','♦'].includes(c.s)?'red':'black'}">${c.r}${c.s}</div>`).join('')}
+async function deal(){if(roundLock||ended)return;const wager=bet();if(!wager)return;roundLock=true;bj={wager,d:deck(),p:[],h:[],done:false};bj.p.push(bj.d.pop(),bj.d.pop());bj.h.push(bj.d.pop(),bj.d.pop());draw(bj.p,'player-cards');drawDealerHidden(bj.h);$('player-total').textContent=total(bj.p);$('dealer-total').textContent='Hidden';$('hit').disabled=$('stand').disabled=false;$('deal').disabled=true;if(total(bj.p)===21)await settleBJ()}
 async function hit(){if(!bj||bj.done)return;bj.p.push(bj.d.pop());draw(bj.p,'player-cards');$('player-total').textContent=total(bj.p);if(total(bj.p)>=21)await settleBJ()}
 async function stand(){if(!bj||bj.done)return;while(total(bj.h)<17)bj.h.push(bj.d.pop());await settleBJ()}
 async function settleBJ(){if(!bj||bj.done)return;bj.done=true;while(total(bj.h)<17)bj.h.push(bj.d.pop());draw(bj.h,'dealer-cards');$('dealer-total').textContent=total(bj.h);$('hit').disabled=$('stand').disabled=true;$('deal').disabled=false;const p=total(bj.p),d=total(bj.h);let payout=0,msg='';const playerNatural=bj.p.length===2&&p===21,dealerNatural=bj.h.length===2&&d===21;if(playerNatural&&dealerNatural){payout=bj.wager;msg='Both you and the dealer have blackjack. Push — your bet is returned.'}else if(playerNatural){payout=Math.floor(bj.wager*2.5);msg='Blackjack!'}else if(dealerNatural)msg='The dealer has blackjack.';else if(p>21)msg='Bust! You went over 21.';else if(d>21||p>d){payout=bj.wager*2;msg='You beat the dealer!'}else if(p===d){payout=bj.wager;msg='Push — your bet is returned.'}else msg='The dealer wins.';await finishRound(bj.wager,payout,`${msg} Dealer: ${d}, you: ${p}.`,payout>=bj.wager);bj=null}
-function startCrash(){if(crashRunning||ended||roundLock)return;const wager=bet();if(!wager)return;roundLock=true;crashRunning=true;crashValue=1;const r=Math.random();crashPoint=Math.max(1.05,Math.min(12,Math.floor((1/(1-r))*100)/100));$('start-crash').disabled=true;$('cash-crash').disabled=false;$('game-result').textContent='';$('crash-line').classList.add('rising');crashTimer=setInterval(()=>{crashValue+=.01+crashValue*.008;$('multiplier').textContent=crashValue.toFixed(2)+'×';$('crash-line').style.width=Math.min(100,(crashValue-1)*12)+'%';if(crashValue>=crashPoint)crashNow()},90);selected.crashBet=wager}
+function startCrash(){if(crashRunning||ended||roundLock)return;const wager=bet();if(!wager)return;roundLock=true;crashRunning=true;crashValue=1;const r=Math.random();crashPoint=Math.max(1.05,Math.min(12,Math.floor((1/(1-r))*100)/100));$('start-crash').disabled=true;$('cash-crash').disabled=false;$('game-result').textContent='';$('crash-line').classList.add('rising');crashTimer=setInterval(()=>{crashValue+=.01+crashValue*.008;$('multiplier').textContent=crashValue.toFixed(2)+'×';$('crash-line').style.width=Math.min(100,(crashValue-1)*12)+'%';if(crashValue>=crashPoint){crashValue=crashPoint;$('multiplier').textContent=crashPoint.toFixed(2)+'×';$('crash-line').style.width=Math.min(100,(crashPoint-1)*12)+'%';crashNow()}},90);selected.crashBet=wager}
 async function crashNow(){if(!crashRunning)return;stopCrash();$('multiplier').classList.add('boom');$('multiplier').textContent='CRASH';$('cash-crash').disabled=true;$('start-crash').disabled=false;const wager=selected.crashBet;await finishRound(wager,0,`Crashed at ${crashPoint.toFixed(2)}×. Your bet is gone.`,false)}
 async function cashCrash(){if(!crashRunning)return;const wager=selected.crashBet,payout=Math.floor(wager*crashValue);stopCrash();$('cash-crash').disabled=true;$('start-crash').disabled=false;await finishRound(wager,payout,`Cashed out at ${crashValue.toFixed(2)}× — payout ${payout} coins!`,true)}
 function stopCrash(){if(crashTimer)clearInterval(crashTimer);crashTimer=null;crashRunning=false;if($('crash-line'))$('crash-line').classList.remove('rising')}

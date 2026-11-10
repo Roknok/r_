@@ -1,6 +1,6 @@
 # Roknok's Casino
 
-A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase global leaderboard (v5).
+A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase global leaderboard (v6).
 
 ## What's included
 
@@ -16,6 +16,10 @@ A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase g
 - Flat buttons, solid-colour surfaces, and restrained hover scaling
 - Roulette uses the correct European single-zero wheel order and red/black number mapping
 - End-of-run leaderboard scores are taken from the saved database balance, including balances below 10 coins
+- Roulette wheel rotation lands the selected winning pocket under the pointer
+- Slot reels visibly cycle and stop on the exact symbols used for payout
+- Blackjack hides the dealer's hole card until the hand is settled
+- Dice, coin, lucky-number, and crash animations reveal the exact outcome used for payout
 - Blackjack handles player/dealer natural 21 correctly
 - Ending a run retries the balance save and will not submit a stale score if the save fails
 
@@ -28,7 +32,7 @@ A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase g
 5. Upload all six project files to the GitHub Pages repository and commit/push the changes.
 6. Open the website and hard-refresh (`Ctrl + Shift + R`).
 
-For this v5 update, run the complete `supabase.sql` script again in SQL Editor. It replaces the `finish_player_run` function so the submitted leaderboard score comes from the saved player balance.
+No Supabase SQL changes are required for v6. Keep your existing database setup and `config.js`.
 
 ## Player identity note
 
