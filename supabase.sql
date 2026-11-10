@@ -25,3 +25,9 @@ with check (
 );
 
 -- No update/delete policies are created for public users.
+
+
+-- Explicit API privileges: RLS policies alone do not grant table access.
+grant usage on schema public to anon, authenticated;
+grant select, insert on table public.scores to anon, authenticated;
+grant usage, select on sequence public.scores_id_seq to anon, authenticated;

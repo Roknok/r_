@@ -18,13 +18,35 @@ function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function setBalance(v){balance=Math.max(0,Math.floor(v));$('balance').textContent=balance.toLocaleString('en-IN')}
 function renderGrid(){$('game-grid').innerHTML=games.map(g=>`<button class="game-card" data-game="${g.id}" style="--tint:${g.tint}"><span class="game-emoji">${g.emoji}</span><strong>${g.name}</strong><span>${g.desc}</span></button>`).join('');document.querySelectorAll('.game-card').forEach(b=>b.onclick=()=>openGame(b.dataset.game))}
-function openGame(id){if(ended||balance<MIN_BET)return finishRun(true);activeGame=id;selected={};$('game-grid').classList.add('hidden');$('play-area').classList.remove('hidden');$('game-tag').textContent=id.toUpperCase();renderGame()}
+function openGame(id){if(ended||balance<MIN_BET)return finishRun(true);activeGame=id;selected={};$('game-grid').classList.add('hidden');$('play-area').classList.remove('hidden');$('game-tag').textContent=id.toUpperCase();renderGame();showGameIntro(id)}
 function back(){if(roundLock||crashRunning){toast('Finish the current round before leaving.');return}stopCrash();activeGame=null;$('play-area').classList.add('hidden');$('game-grid').classList.remove('hidden')}
 function title(t,s){return `<div class="game-panel"><h2 class="game-title">${t}</h2><p class="game-sub">${s}</p>`}
 function betField(){return `<div class="bet-row"><label for="bet">BET</label><input id="bet" class="bet-input" type="number" min="${MIN_BET}" max="${balance}" step="1" value="${Math.min(10,balance)}"><span class="small-note">Minimum 10 · Balance ${balance}</span></div>`}
 function bet(){const n=Number($('bet')?.value);if(!Number.isInteger(n)||n<MIN_BET||n>balance){toast(`Bet must be between 10 and ${balance} coins.`);return null}return n}
 function result(msg,win){$('game-result').innerHTML=msg;$('game-result').className='game-result '+(win?'positive':'negative')}
-function finishRound(wager,payout,msg){setBalance(balance-wager+payout);result(msg,payout>=wager);roundLock=false;if($('play'))$('play').disabled=false;if(balance<MIN_BET){finishRun(true)}}
+function finishRound(wager,payout,msg){
+ const net=payout-wager;setBalance(balance+net);result(msg,net>=0);roundLock=true;
+ if($('play'))$('play').disabled=false;
+ $('outcome-kicker').textContent=net>0?'NICE WIN':net<0?'TOUGH BREAK':'NO CHANGE';
+ $('outcome-title').textContent=net>0?'YOU WON':net<0?'YOU LOST':'BET RETURNED';
+ $('outcome-amount').textContent=`${net>0?'+':''}${net.toLocaleString('en-IN')} COINS`;
+ $('outcome-amount').className='outcome-amount '+(net>0?'win':net<0?'loss':'even');
+ $('outcome-detail').textContent=`${msg} Your balance is now ${balance.toLocaleString('en-IN')} coins.`;
+ $('outcome-continue').textContent=balance<MIN_BET?'View leaderboard':'Continue playing';
+ $('outcome-modal').classList.remove('hidden');
+ $('outcome-card').classList.remove('win-pop','loss-shake');void $('outcome-card').offsetWidth;$('outcome-card').classList.add(net>=0?'win-pop':'loss-shake');
+ }
+function showGameIntro(id){
+ const g=games.find(x=>x.id===id);const tips={
+ roulette:'Choose red, black, or green. Red and black pay 2× your bet; green pays 14×.',
+ slots:'Spin three reels. Three matching symbols pay 5× (7s pay 10×); two matching symbols pay 2×.',
+ blackjack:'Deal two cards, then hit or stand. Beat the dealer without going over 21. A tie returns your bet.',
+ dice:'Choose low (1–3) or high (4–6). A correct call pays 2× your bet.',
+ coin:'Choose heads or tails. A correct call pays 2× your bet.',
+ crash:'Start the multiplier and cash out before it crashes. If it crashes first, you lose your bet.',
+ lucky:'Pick one number from 1 to 10. An exact guess pays 8× your bet.'};
+ $('intro-title').textContent=g.name;$('intro-description').textContent=tips[id];$('intro-modal').classList.remove('hidden');
+ }
 function renderGame(){
  stopCrash();const area=$('game-content');
  if(activeGame==='roulette')area.innerHTML=title('Roulette','Choose red, black, or green. Red and black pay 1:1; green pays 14:1.')+`<div class="roulette-stage"><div class="roulette-pointer"></div><div class="roulette-wheel" id="wheel"><div class="wheel-center" id="wheel-number">?</div></div></div>${betField()}<div class="choice-row" id="choices"><button class="choice selected" data-choice="red">Red</button><button class="choice" data-choice="black">Black</button><button class="choice" data-choice="green">Green</button></div><button class="primary game-action" id="play">SPIN THE WHEEL</button><div id="game-result" class="game-result"></div></div>`;
@@ -58,15 +80,30 @@ function startCrash(){if(crashRunning||ended||roundLock)return;const wager=bet()
 function crashNow(){if(!crashRunning)return;stopCrash();$('multiplier').classList.add('boom');$('multiplier').textContent='CRASH';$('cash-crash').disabled=true;$('start-crash').disabled=false;const wager=selected.crashBet;finishRound(wager,0,`Crashed at ${crashPoint.toFixed(2)}×. Your bet is gone.`,false)}
 function cashCrash(){if(!crashRunning)return;const wager=selected.crashBet,payout=Math.floor(wager*crashValue);stopCrash();$('cash-crash').disabled=true;$('start-crash').disabled=false;finishRound(wager,payout,`Cashed out at ${crashValue.toFixed(2)}× — payout ${payout} coins!`,true)}
 function stopCrash(){if(crashTimer)clearInterval(crashTimer);crashTimer=null;crashRunning=false;if($('crash-line'))$('crash-line').classList.remove('rising')}
-async function finishRun(lost=false){if(ended)return;ended=true;stopCrash();const score=lost?0:balance;localStorage.setItem(LOCK_KEY,today());$('game-screen').classList.add('hidden');$('entry-screen').classList.add('hidden');$('locked-screen').classList.remove('hidden');$('locked-message').textContent=lost?'Your balance fell below 10 coins. Your run is over for today.':'Your score has been submitted. You can return tomorrow.';await submitScore(score);await loadLeaderboard();}
-async function submitScore(score){let saved=false;if(supabase){try{const {error}=await supabase.from('scores').insert({player_name:name||'Player',score});if(error)throw error;saved=true}catch(e){console.warn('Supabase score insert failed:',e)}}if(!saved){const arr=JSON.parse(localStorage.getItem('luckyScores')||'[]');arr.push({player_name:name||'Player',score,created_at:new Date().toISOString()});localStorage.setItem('luckyScores',JSON.stringify(arr));toast('Score saved in this browser only.')}}
-async function loadLeaderboard(){let rows=[],remote=false;if(supabase){try{const {data,error}=await supabase.from('scores').select('player_name,score,created_at').order('score',{ascending:false}).limit(10);if(!error&&data){rows=data;remote=true}else console.warn('Leaderboard read failed:',error)}catch(e){console.warn(e)}}if(!remote)rows=JSON.parse(localStorage.getItem('luckyScores')||'[]').sort((a,b)=>b.score-a.score).slice(0,10);const note=remote?'Global scores from Supabase.':'Demo mode: scores are stored on this device only.';const html=rows.length?rows.map((r,i)=>`<div class="leader-row"><span class="rank ${i===0?'first':''}">${i+1}</span><span class="leader-name">${escapeHTML(r.player_name)}</span><span class="leader-score">${Number(r.score).toLocaleString('en-IN')} coins</span></div>`).join(''):'<div class="loading">No scores yet. Be the first!</div>';['leaderboard-list','locked-leaderboard-list'].forEach(id=>{if($(id))$(id).innerHTML=html});['leaderboard-note','locked-leaderboard-note'].forEach(id=>{if($(id))$(id).textContent=note})}
+async function finishRun(lost=false){if(ended)return;ended=true;stopCrash();const score=lost?0:balance;localStorage.setItem(LOCK_KEY,today());$('game-screen').classList.add('hidden');$('entry-screen').classList.add('hidden');$('locked-screen').classList.remove('hidden');$('locked-message').textContent=lost?'Your balance fell below 10 coins. Your run is over for today.':'Your score has been submitted. You can return tomorrow.';const saved=await submitScore(score);if(!saved)toast('Your score could not reach the global leaderboard. Check the status below.');await loadLeaderboard();}
+let backendError='', submitError='';
+async function submitScore(score){
+ if(!supabase){backendError='Supabase client is not available. Check the Supabase script, URL, and publishable key.';console.error(backendError);return false}
+ try{const {error}=await supabase.from('scores').insert({player_name:name||'Player',score});if(error)throw error;backendError='';return true}
+ catch(e){submitError=e?.message||String(e);console.error('Supabase score insert failed:',e);return false}
+}
+async function loadLeaderboard(){
+ let rows=[],remote=false;
+ if(!supabase){backendError='Supabase is not configured or its client script failed to load.'}
+ else{try{const {data,error}=await supabase.from('scores').select('player_name,score,created_at').order('score',{ascending:false}).limit(10);if(error)throw error;rows=data||[];remote=true;backendError=''}catch(e){backendError=e?.message||String(e);console.error('Supabase leaderboard read failed:',e)}}
+ const note=remote?(submitError?`Global leaderboard connected, but the last score could not be submitted: ${submitError}`:'Connected to Supabase · Global scores.'):`GLOBAL LEADERBOARD UNAVAILABLE: ${backendError} Recheck config.js and the Supabase SQL permissions.`;
+ const html=remote?(rows.length?rows.map((r,i)=>`<div class="leader-row"><span class="rank ${i===0?'first':''}">${i+1}</span><span class="leader-name">${escapeHTML(r.player_name)}</span><span class="leader-score">${Number(r.score).toLocaleString('en-IN')} coins</span></div>`).join(''):'<div class="loading">No global scores yet. Be the first!</div>'):'<div class="loading error-note">Could not load global scores. See the message below.</div>';
+ ['leaderboard-list','locked-leaderboard-list'].forEach(id=>{if($(id))$(id).innerHTML=html});
+ ['leaderboard-note','locked-leaderboard-note'].forEach(id=>{if($(id))$(id).textContent=note});
+}
 function enter(){if(isLocked()){showLocked();return}const v=$('player-name').value.trim();if(v.length<2)return;name=v;$('player-label').textContent=name;$('entry-screen').classList.add('hidden');$('game-screen').classList.remove('hidden');renderGrid();loadLeaderboard()}
 function showLocked(){ended=true;$('entry-screen').classList.add('hidden');$('game-screen').classList.add('hidden');$('locked-screen').classList.remove('hidden');$('locked-message').textContent='You have already completed your run today. The games unlock tomorrow.';loadLeaderboard()}
 $('entry-form').addEventListener('submit',e=>{e.preventDefault();enter()});
 $('cashout-top').onclick=()=>{if(roundLock||crashRunning){toast('Finish the current round before cashing out.');return}if(balance<MIN_BET)return finishRun(true);if(confirm(`Cash out with ${balance} coins? This ends your run for today.`))finishRun(false)};
 $('back-games').onclick=back;
 window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='u'&&isLocked()){unlockPresses++;if(unlockPresses>=10){localStorage.removeItem(LOCK_KEY);unlockPresses=0;location.reload()}}});
-const cfg=window.LUCKY_CONFIG||{};if(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&window.supabase){supabase=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY)}
+$('intro-start').onclick=()=>{$('intro-modal').classList.add('hidden')};
+$('outcome-continue').onclick=()=>{$('outcome-modal').classList.add('hidden');roundLock=false;if(balance<MIN_BET)finishRun(true)};
+const cfg=window.LUCKY_CONFIG||{};if(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&window.supabase){try{supabase=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY)}catch(e){backendError=e.message;console.error(e)}}else{backendError='Missing Supabase URL, publishable key, or Supabase JavaScript library.'}
 if(isLocked())showLocked();else loadLeaderboard();
 })();
