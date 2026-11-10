@@ -27,11 +27,9 @@ function result(msg,win){$('game-result').innerHTML=msg;$('game-result').classNa
 function finishRound(wager,payout,msg){
  const net=payout-wager;setBalance(balance+net);result(msg,net>=0);roundLock=true;
  if($('play'))$('play').disabled=false;
- $('outcome-kicker').textContent=net>0?'NICE WIN':net<0?'TOUGH BREAK':'NO CHANGE';
- $('outcome-title').textContent=net>0?'YOU WON':net<0?'YOU LOST':'BET RETURNED';
- $('outcome-amount').textContent=`${net>0?'+':''}${net.toLocaleString('en-IN')} COINS`;
+ $('outcome-amount').textContent=`${net>0?'+':''}${net.toLocaleString('en-IN')} coins`;
  $('outcome-amount').className='outcome-amount '+(net>0?'win':net<0?'loss':'even');
- $('outcome-detail').textContent=`${msg} Your balance is now ${balance.toLocaleString('en-IN')} coins.`;
+ $('outcome-detail').textContent=`${msg} · Balance: ${balance.toLocaleString('en-IN')} coins`;
  $('outcome-continue').textContent=balance<MIN_BET?'View leaderboard':'Continue playing';
  $('outcome-modal').classList.remove('hidden');
  $('outcome-card').classList.remove('win-pop','loss-shake');void $('outcome-card').offsetWidth;$('outcome-card').classList.add(net>=0?'win-pop':'loss-shake');
@@ -84,14 +82,14 @@ async function finishRun(lost=false){if(ended)return;ended=true;stopCrash();cons
 let backendError='', submitError='';
 async function submitScore(score){
  if(!supabase){backendError='Supabase client is not available. Check the Supabase script, URL, and publishable key.';console.error(backendError);return false}
- try{const {error}=await supabase.from('scores').insert({player_name:name||'Player',score});if(error)throw error;backendError='';return true}
+ try{const {error}=await supabase.from('scores').insert({player_name:name||'Player',score});if(error)throw error;backendError='';submitError='';return true}
  catch(e){submitError=e?.message||String(e);console.error('Supabase score insert failed:',e);return false}
 }
 async function loadLeaderboard(){
  let rows=[],remote=false;
  if(!supabase){backendError='Supabase is not configured or its client script failed to load.'}
  else{try{const {data,error}=await supabase.from('scores').select('player_name,score,created_at').order('score',{ascending:false}).limit(10);if(error)throw error;rows=data||[];remote=true;backendError=''}catch(e){backendError=e?.message||String(e);console.error('Supabase leaderboard read failed:',e)}}
- const note=remote?(submitError?`Global leaderboard connected, but the last score could not be submitted: ${submitError}`:'Connected to Supabase · Global scores.'):`GLOBAL LEADERBOARD UNAVAILABLE: ${backendError} Recheck config.js and the Supabase SQL permissions.`;
+ const note=remote?(submitError?`Supabase is connected, but the last score could not be submitted: ${submitError}`:'Connected to Supabase · Global scores.'):`GLOBAL LEADERBOARD UNAVAILABLE: ${backendError} Check that config.js has your exact Project URL and Publishable key, then refresh.`;
  const html=remote?(rows.length?rows.map((r,i)=>`<div class="leader-row"><span class="rank ${i===0?'first':''}">${i+1}</span><span class="leader-name">${escapeHTML(r.player_name)}</span><span class="leader-score">${Number(r.score).toLocaleString('en-IN')} coins</span></div>`).join(''):'<div class="loading">No global scores yet. Be the first!</div>'):'<div class="loading error-note">Could not load global scores. See the message below.</div>';
  ['leaderboard-list','locked-leaderboard-list'].forEach(id=>{if($(id))$(id).innerHTML=html});
  ['leaderboard-note','locked-leaderboard-note'].forEach(id=>{if($(id))$(id).textContent=note});

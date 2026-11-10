@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#f6f8ed"><title>Lucky Lounge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <div id="app">
@@ -59,9 +59,9 @@
     <div class="modal-card intro-card"><div class="modal-symbol">?</div><p class="mini-brand">BEFORE YOU PLAY</p><h2 id="intro-title">Game instructions</h2><p id="intro-description" class="muted"></p><div class="cashout-reminder"><strong>IMPORTANT: CASH OUT BEFORE YOU LOSE EVERYTHING.</strong><span>You can cash out between rounds to submit your remaining coins. If your balance drops below 10, your day is over.</span></div><button id="intro-start" class="primary full">Got it — let's play</button></div>
   </div>
   <div id="outcome-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="outcome-title">
-    <div id="outcome-card" class="modal-card outcome-card"><p class="mini-brand" id="outcome-kicker">ROUND COMPLETE</p><h2 id="outcome-title">YOU WON</h2><div id="outcome-amount" class="outcome-amount">+10 COINS</div><p id="outcome-detail" class="muted"></p><button id="outcome-continue" class="primary full">Continue playing</button></div>
+    <div id="outcome-card" class="modal-card outcome-card"><div id="outcome-amount" class="outcome-amount">+10 coins</div><p id="outcome-detail" class="muted"></p><button id="outcome-continue" class="primary full">Continue playing</button></div>
   </div>
   <div id="toast" class="toast" role="status"></div>
 </div>
-<script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+<script src="config.js?v=4"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js?v=4"></script>
 </body></html>
