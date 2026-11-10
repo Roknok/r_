@@ -21,6 +21,13 @@ const games=[
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function restartAnimation(el,className,...removeClasses){
+ el.classList.remove(className,...removeClasses);
+ el.style.animation='none';
+ void el.offsetWidth;
+ el.style.animation='';
+ el.classList.add(className);
+}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function setBalance(v){balance=Math.max(0,Math.floor(v));$('balance').textContent=balance.toLocaleString('en-IN')}
 function renderGrid(){$('game-grid').innerHTML=games.map(g=>`<button class="game-card" data-game="${g.id}" style="--tint:${g.tint}"><span class="game-emoji">${g.emoji}</span><strong>${g.name}</strong><span>${g.desc}</span></button>`).join('');document.querySelectorAll('.game-card').forEach(b=>b.onclick=()=>openGame(b.dataset.game))}
@@ -71,8 +78,17 @@ async function playSimple(){
   const wheel=$('wheel'),pockets=wheel.querySelector('.roulette-pockets');
   const n=Math.floor(Math.random()*37),index=ROULETTE_ORDER.indexOf(n),step=360/ROULETTE_ORDER.length;
   const pocketCenter=-90+(index+.5)*step;
-  const targetRotation=360*5-pocketCenter;
+  const currentRotation=Number(pockets.dataset.rotation||0);
+  // The pointer is fixed at 12 o'clock. Align the winning pocket centre
+  // with -90 degrees, taking the wheel's previous spin into account.
+  const currentAngle=((pocketCenter+currentRotation)%360+360)%360;
+  const alignment=(((-90-currentAngle)%360)+360)%360;
+  const targetRotation=currentRotation+360*5+alignment;
+  pockets.dataset.rotation=String(targetRotation);
   const color=rouletteColor(n),choice=selected.choice||'red';
+  pockets.style.transition='none';
+  pockets.style.transform=`rotate(${currentRotation}deg)`;
+  void pockets.offsetWidth;
   pockets.style.transition='transform 2.6s cubic-bezier(.10,.72,.12,1)';
   pockets.style.transform=`rotate(${targetRotation}deg)`;
   await sleep(2700);
@@ -95,19 +111,25 @@ async function playSimple(){
  }
  if(activeGame==='coin'){
   const face=$('coin-face'),side=Math.random()<.5?'Heads':'Tails',choice=selected.choice||'Heads';
-  face.classList.add('flipping');await sleep(1120);face.classList.remove('flipping');
+  face.textContent='?';restartAnimation(face,'flipping','reveal');
+  await sleep(1120);face.classList.remove('flipping');
   face.textContent=side==='Heads'?'H':'T';face.classList.add('reveal');
   const payout=side===choice?wager*2:0;await finishRound(wager,payout,`${side}! ${payout?'You called it.':'Not this time.'}`,!!payout);return
  }
  if(activeGame==='dice'){
   const face=$('dice-face'),n=1+Math.floor(Math.random()*6),choice=selected.choice||'low';
-  face.classList.add('rolling');await sleep(840);face.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][n-1];
+  const diceFaces=['⚀','⚁','⚂','⚃','⚄','⚅'];
+  restartAnimation(face,'rolling','reveal');
+  const diceTimer=setInterval(()=>{face.textContent=diceFaces[Math.floor(Math.random()*6)]},75);
+  await sleep(840);clearInterval(diceTimer);face.textContent=diceFaces[n-1];
   face.classList.remove('rolling');face.classList.add('reveal');
   const win=choice==='high'?n>=4:n<=3,payout=win?wager*2:0;await finishRound(wager,payout,`You rolled ${n}. ${win?'Correct call!':'Wrong call.'}`,win);return
  }
  if(activeGame==='lucky'){
   const face=$('lucky-face'),n=1+Math.floor(Math.random()*10),choice=Number(selected.choice||5);
-  face.classList.add('revealing');await sleep(950);face.textContent=n;
+  restartAnimation(face,'revealing','reveal');face.textContent='?';
+  const numberTimer=setInterval(()=>{face.textContent=String(1+Math.floor(Math.random()*10))},65);
+  await sleep(1050);clearInterval(numberTimer);face.textContent=n;
   face.classList.remove('revealing');face.classList.add('reveal');
   const payout=n===choice?wager*8:0;await finishRound(wager,payout,`The number was ${n}. ${payout?'Perfect guess!':'Not quite.'}`,!!payout);return
  }

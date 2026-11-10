@@ -57,3 +57,12 @@ button:active:not(:disabled) { transform: scale(1) !important; }
 .roulette-pockets{transform-origin:50% 50%;transition:transform 2.6s cubic-bezier(.10,.72,.12,1)}
 .roulette-wheel.spinning{animation:none}
 .playing-card.card-back{background:#285a3c;border:3px solid #f0d77b;color:#f8e9b4;font-size:25px}
+
+
+/* v7: keep roulette's indicator exactly above the 12 o'clock pocket. */
+.roulette-stage .roulette-pointer{left:50%;right:auto;top:5px;transform:translateX(-50%);z-index:5}
+.roulette-pockets{transform-origin:50% 50%;}
+/* v7: repeat the rolling/reveal animations for every round. */
+.coin-disc.flipping{animation:coinFlip .22s linear infinite !important}
+.dice-face.rolling{animation:diceRoll .14s linear infinite !important}
+.lucky-orb.revealing{animation:orbPulse .16s ease-in-out infinite alternate !important}

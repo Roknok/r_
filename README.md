@@ -1,6 +1,6 @@
 # Roknok's Casino
 
-A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase global leaderboard (v6).
+A static HTML/CSS/JavaScript casino-style game with seven games and a Supabase global leaderboard (v7).
 
 ## What's included
 
@@ -45,3 +45,11 @@ The anonymous sign-in session is saved in that browser's site storage. Refreshin
 - `app.js` — games, player session, balance persistence, and leaderboard
 - `config.js` — Supabase project URL and publishable key
 - `supabase.sql` — database upgrade and secure RPC functions
+
+
+## v7 animation corrections
+
+- Roulette's pointer is explicitly centred at the top (12 o'clock), and each winning pocket is aligned with it, including consecutive spins.
+- Dice and coin animations are restarted on every round; the dice faces cycle while rolling.
+- Lucky Number shuffles through numbers before revealing the exact result used for the payout.
+- No Supabase SQL changes are required. Keep your existing `config.js` and database setup.
